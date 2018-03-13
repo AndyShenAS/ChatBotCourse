@@ -9,6 +9,8 @@ from tensorflow.python.ops import rnn
 import chardet
 import numpy as np
 import struct
+import re
+import gensim
 
 question_seqs = []
 answer_seqs = []
@@ -21,63 +23,99 @@ max_seq_len = 8
 word_set = {}
 
 def load_word_set():
-    file_object = open('./segment_result_lined.3000000.pair.less', 'r')
+    file_object = open('./corpus.segment.pair', 'r')
     while True:
         line = file_object.readline()
         if line:
             line_pair = line.split('|')
             line_question = line_pair[0]
             line_answer = line_pair[1]
-            for word in line_question.decode('utf-8').split(' '):
+            for word in line_question.split(' '):
                 word_set[word] = 1
-            for word in line_answer.decode('utf-8').split(' '):
+            for word in line_answer.split(' '):
                 word_set[word] = 1
         else:
             break
     file_object.close()
 
+
+
+
+def bin2txt(path_to_model, output_file):
+    output = codecs.open(output_file, 'w' , 'utf-8')
+    model = gensim.models.KeyedVectors.load_word2vec_format(path_to_model, binary=True)
+    print('Done loading Word2Vec!')
+    vocab = model.vocab
+    for item in vocab:
+        vector = list()
+        for dimension in model[item]:
+            vector.append(str(dimension))
+        vector_str = ",".join(vector)
+        line = item + "\t"  + vector_str
+        output.writelines(line + "\n")  #本来用的是write（）方法，但是结果出来换行效果不对。改成writelines（）方法后还没试过。
+    output.close()
+
+
+
+
 def load_vectors(input):
     """从vectors.bin加载词向量，返回一个word_vector_dict的词典，key是词，value是200维的向量
     """
-    print "begin load vectors"
+    print("begin load vectors")
 
     input_file = open(input, "rb")
 
+
     # 获取词表数目及向量维度
     words_and_size = input_file.readline()
-    words_and_size = words_and_size.strip()
-    words = long(words_and_size.split(' ')[0])
-    size = long(words_and_size.split(' ')[1])
-    print "words =", words
-    print "size =", size
+    words_and_size = str(words_and_size.strip())
+    pattern = re.compile("'(.*)'")
+    words_and_size = pattern.findall(words_and_size)[0]
+    print(words_and_size)
+    words = int(words_and_size.split(' ')[0])
+    size = int(words_and_size.split(' ')[1])
+    print("words =", words)
+    print("size =", size)
 
-    for b in range(0, words):
-        a = 0
-        word = ''
-        # 读取一个词
-        while True:
-            c = input_file.read(1)
-            word = word + c
-            if False == c or c == ' ':
-                break
-            if a < max_w and c != '\n':
-                a = a + 1
-        word = word.strip()
-
-        vector = []
-        for index in range(0, size):
-            m = input_file.read(float_size)
-            (weight,) = struct.unpack('f', m)
-            vector.append(float(weight))
-
-        # 将词及其对应的向量存到dict中
-
-        if word_set.has_key(word.decode('utf-8')):
-            word_vector_dict[word.decode('utf-8')] = vector[0:word_vec_dim]
+    model = gensim.models.KeyedVectors.load_word2vec_format(input, binary=True)
+    vocab = model.vocab
+    # print(vocab)
+    for item in vocab:
+        vector = list()
+        for dimension in model[item]:
+            vector.append(dimension)
+        if item in word_set:
+            word_vector_dict[item] = vector
+    # print(word_vector_dict)
+    # for b in range(0, words):
+    #     a = 0
+    #     word = ''
+    #     # 读取一个词
+    #     while True:
+    #         c = input_file.read(1)
+    #         c = c.decode()
+    #         print(c)
+    #         word = word + c
+    #         if False == c or c == ' ':
+    #             break
+    #         if a < max_w and c != '\n':
+    #             a = a + 1
+    #     word = word.strip()
+    #
+    #     vector = []
+    #     for index in range(0, size):
+    #         m = input_file.read(float_size)
+    #         (weight,) = struct.unpack('f', m)
+    #         vector.append(float(weight))
+    #
+    #     # 将词及其对应的向量存到dict中
+    #
+    #     if word in word_set:
+    #         word_vector_dict[word] = vector[0:word_vec_dim]
 
     input_file.close()
 
-    print "load vectors finish"
+    print("load vectors finish")
 
 def init_seq(input_file):
     """读取切好词的文本文件，加载全部词序列
@@ -92,11 +130,11 @@ def init_seq(input_file):
             line_pair = line.split('|')
             line_question = line_pair[0]
             line_answer = line_pair[1]
-            for word in line_question.decode('utf-8').split(' '):
-                if word_vector_dict.has_key(word):
+            for word in line_question.split(' '):
+                if word in word_vector_dict:
                     question_seq.append(word_vector_dict[word])
-            for word in line_answer.decode('utf-8').split(' '):
-                if word_vector_dict.has_key(word):
+            for word in line_answer.split(' '):
+                if word in word_vector_dict:
                     answer_seq.append(word_vector_dict[word])
         else:
             break
@@ -141,7 +179,7 @@ class MySeq2Seq(object):
     输出的时候把解码器的输出按照词向量的200维展平，这样输出就是(?,seqlen*200)
     这样就可以通过regression来做回归计算了，输入的y也展平，保持一致
     """
-    def __init__(self, max_seq_len = 16, word_vec_dim = 200, input_file='./segment_result_lined.3000000.pair.less'):
+    def __init__(self, max_seq_len = 16, word_vec_dim = 200, input_file='./corpus.segment.pair'):
         self.max_seq_len = max_seq_len
         self.word_vec_dim = word_vec_dim
         self.input_file = input_file
@@ -180,12 +218,12 @@ class MySeq2Seq(object):
         decoder_inputs_tmp = tf.slice(input_data, [0, self.max_seq_len, 0], [-1, self.max_seq_len-1, self.word_vec_dim], name="dec_in_tmp")
         go_inputs = tf.ones_like(decoder_inputs_tmp)
         go_inputs = tf.slice(go_inputs, [0, 0, 0], [-1, 1, self.word_vec_dim])
-        decoder_inputs = tf.concat(1, [go_inputs, decoder_inputs_tmp], name="dec_in")
+        decoder_inputs = tf.concat([go_inputs, decoder_inputs_tmp], 1 , name="dec_in")
 
         # 编码器
         # 把encoder_inputs交给编码器，返回一个输出(预测序列的第一个值)和一个状态(传给解码器)
         (encoder_output_tensor, states) = tflearn.lstm(encoder_inputs, self.word_vec_dim, return_state=True, scope='encoder_lstm')
-        encoder_output_sequence = tf.pack([encoder_output_tensor], axis=1)
+        encoder_output_sequence = tf.stack([encoder_output_tensor], axis=1)
 
         # 解码器
         # 预测过程用前一个时间序的输出作为下一个时间序的输入
@@ -195,7 +233,7 @@ class MySeq2Seq(object):
         else:
             first_dec_input = tf.slice(decoder_inputs, [0, 0, 0], [-1, 1, self.word_vec_dim])
         decoder_output_tensor = tflearn.lstm(first_dec_input, self.word_vec_dim, initial_state=states, return_seq=False, reuse=False, scope='decoder_lstm')
-        decoder_output_sequence_single = tf.pack([decoder_output_tensor], axis=1)
+        decoder_output_sequence_single = tf.stack([decoder_output_tensor], axis=1)
         decoder_output_sequence_list = [decoder_output_tensor]
         # 再用解码器的输出作为下一个时序的输入
         for i in range(self.max_seq_len-1):
@@ -204,11 +242,11 @@ class MySeq2Seq(object):
             else:
                 next_dec_input = tf.slice(decoder_inputs, [0, i+1, 0], [-1, 1, self.word_vec_dim])
             decoder_output_tensor = tflearn.lstm(next_dec_input, self.word_vec_dim, return_seq=False, reuse=True, scope='decoder_lstm')
-            decoder_output_sequence_single = tf.pack([decoder_output_tensor], axis=1)
+            decoder_output_sequence_single = tf.stack([decoder_output_tensor], axis=1)
             decoder_output_sequence_list.append(decoder_output_tensor)
 
-        decoder_output_sequence = tf.pack(decoder_output_sequence_list, axis=1)
-        real_output_sequence = tf.concat(1, [encoder_output_sequence, decoder_output_sequence])
+        decoder_output_sequence = tf.stack(decoder_output_sequence_list, axis=1)
+        real_output_sequence = tf.concat([encoder_output_sequence, decoder_output_sequence], 1)
 
         net = tflearn.regression(real_output_sequence, optimizer='sgd', learning_rate=0.1, loss='mean_square')
         model = tflearn.DNN(net)
@@ -229,7 +267,10 @@ class MySeq2Seq(object):
 if __name__ == '__main__':
     phrase = sys.argv[1]
     if 3 == len(sys.argv):
-        my_seq2seq = MySeq2Seq(word_vec_dim=word_vec_dim, max_seq_len=max_seq_len, input_file=sys.argv[2])
+        file = open('./test.data',"w", encoding='utf-8')
+        file.write(sys.argv[2]+'|')
+        file.close()
+        my_seq2seq = MySeq2Seq(word_vec_dim=word_vec_dim, max_seq_len=max_seq_len, input_file='./test.data')
     else:
         my_seq2seq = MySeq2Seq(word_vec_dim=word_vec_dim, max_seq_len=max_seq_len)
     if phrase == 'train':
@@ -239,9 +280,9 @@ if __name__ == '__main__':
         trainXY, trainY = my_seq2seq.generate_trainig_data()
         predict = model.predict(trainXY)
         for sample in predict:
-            print "predict answer"
+            print("predict answer")
             for w in sample[1:]:
                 (match_word, max_cos) = vector2word(w)
                 #if vector_sqrtlen(w) < 1:
                 #    break
-                print match_word, max_cos, vector_sqrtlen(w)
+                print(match_word, max_cos, vector_sqrtlen(w))

@@ -1,0 +1,2 @@
+model_checkpoint_path: "/home/shenmaoyuan/proj/ChatBotCourse/chatbotv2/model/model"
+all_model_checkpoint_paths: "/home/shenmaoyuan/proj/ChatBotCourse/chatbotv2/model/model"

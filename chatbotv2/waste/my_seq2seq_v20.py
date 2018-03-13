@@ -10,28 +10,46 @@ import chardet
 import numpy as np
 import struct
 
-seq = []
+question_seqs = []
+answer_seqs = []
 
 max_w = 50
 float_size = 4
 word_vector_dict = {}
 word_vec_dim = 200
-max_seq_len = 16
+max_seq_len = 8
+word_set = {}
+
+def load_word_set():
+    file_object = open('./segment_result_lined.3000000.pair.less', 'r')
+    while True:
+        line = file_object.readline()
+        if line:
+            line_pair = line.split('|')
+            line_question = line_pair[0]
+            line_answer = line_pair[1]
+            for word in line_question.decode('utf-8').split(' '):
+                word_set[word] = 1
+            for word in line_answer.decode('utf-8').split(' '):
+                word_set[word] = 1
+        else:
+            break
+    file_object.close()
 
 def load_vectors(input):
     """从vectors.bin加载词向量，返回一个word_vector_dict的词典，key是词，value是200维的向量
     """
-    print "begin load vectors"
+    print("begin load vectors")
 
     input_file = open(input, "rb")
 
     # 获取词表数目及向量维度
     words_and_size = input_file.readline()
     words_and_size = words_and_size.strip()
-    words = long(words_and_size.split(' ')[0])
-    size = long(words_and_size.split(' ')[1])
-    print "words =", words
-    print "size =", size
+    words = int(words_and_size.split(' ')[0])
+    size = int(words_and_size.split(' ')[1])
+    print("words =", words)
+    print("size =", size)
 
     for b in range(0, words):
         a = 0
@@ -53,26 +71,37 @@ def load_vectors(input):
             vector.append(float(weight))
 
         # 将词及其对应的向量存到dict中
-        #word_vector_dict[word.decode('utf-8')] = vector
-        word_vector_dict[word.decode('utf-8')] = vector[0:word_vec_dim]
+
+        if word.decode('utf-8') in word_set:
+            word_vector_dict[word.decode('utf-8')] = vector[0:word_vec_dim]
 
     input_file.close()
 
-    print "load vectors finish"
+    print("load vectors finish")
 
-def init_seq():
+def init_seq(input_file):
     """读取切好词的文本文件，加载全部词序列
     """
-    file_object = open('zhenhuanzhuan.segment', 'r')
+    file_object = open(input_file, 'r')
     vocab_dict = {}
     while True:
+        question_seq = []
+        answer_seq = []
         line = file_object.readline()
         if line:
-            for word in line.decode('utf-8').split(' '):
-                if word_vector_dict.has_key(word):
-                    seq.append(word_vector_dict[word])
+            line_pair = line.split('|')
+            line_question = line_pair[0]
+            line_answer = line_pair[1]
+            for word in line_question.decode('utf-8').split(' '):
+                if word in word_vector_dict:
+                    question_seq.append(word_vector_dict[word])
+            for word in line_answer.decode('utf-8').split(' '):
+                if word in word_vector_dict:
+                    answer_seq.append(word_vector_dict[word])
         else:
             break
+        question_seqs.append(question_seq)
+        answer_seqs.append(answer_seq)
     file_object.close()
 
 def vector_sqrtlen(vector):
@@ -112,29 +141,34 @@ class MySeq2Seq(object):
     输出的时候把解码器的输出按照词向量的200维展平，这样输出就是(?,seqlen*200)
     这样就可以通过regression来做回归计算了，输入的y也展平，保持一致
     """
-    def __init__(self, max_seq_len = 16, word_vec_dim = 200):
+    def __init__(self, max_seq_len = 16, word_vec_dim = 200, input_file='./segment_result_lined.3000000.pair.less'):
         self.max_seq_len = max_seq_len
         self.word_vec_dim = word_vec_dim
+        self.input_file = input_file
 
     def generate_trainig_data(self):
+        load_word_set()
         load_vectors("./vectors.bin")
-        init_seq()
+        init_seq(self.input_file)
         xy_data = []
         y_data = []
-        for i in range(30,40,10):
-            # 问句、答句都是16字，所以取32个
-            start = i*self.max_seq_len*2
-            middle = i*self.max_seq_len*2 + self.max_seq_len
-            end = (i+1)*self.max_seq_len*2
-            sequence_xy = seq[start:end]
-            sequence_y = seq[middle:end]
-            print "right answer"
-            for w in sequence_y:
-                (match_word, max_cos) = vector2word(w)
-                print match_word
-            sequence_y = [np.ones(self.word_vec_dim)] + sequence_y
-            xy_data.append(sequence_xy)
-            y_data.append(sequence_y)
+        for i in range(len(question_seqs)):
+        #for i in range(100):
+            question_seq = question_seqs[i]
+            answer_seq = answer_seqs[i]
+            if len(question_seq) < self.max_seq_len and len(answer_seq) < self.max_seq_len:
+                sequence_xy = [np.zeros(self.word_vec_dim)] * (self.max_seq_len-len(question_seq)) + list(reversed(question_seq))
+                sequence_y = answer_seq + [np.zeros(self.word_vec_dim)] * (self.max_seq_len-len(answer_seq))
+                sequence_xy = sequence_xy + sequence_y
+                sequence_y = [np.ones(self.word_vec_dim)] + sequence_y
+                xy_data.append(sequence_xy)
+                y_data.append(sequence_y)
+
+                #print "right answer"
+                #for w in answer_seq:
+                #    (match_word, max_cos) = vector2word(w)
+                #    if len(match_word)>0:
+                #        print match_word, vector_sqrtlen(w)
 
         return np.array(xy_data), np.array(y_data)
 
@@ -183,7 +217,7 @@ class MySeq2Seq(object):
     def train(self):
         trainXY, trainY = self.generate_trainig_data()
         model = self.model(feed_previous=False)
-        model.fit(trainXY, trainY, n_epoch=1000, snapshot_epoch=False)
+        model.fit(trainXY, trainY, n_epoch=1000, snapshot_epoch=False, batch_size=1)
         model.save('./model/model')
         return model
 
@@ -194,7 +228,10 @@ class MySeq2Seq(object):
 
 if __name__ == '__main__':
     phrase = sys.argv[1]
-    my_seq2seq = MySeq2Seq(word_vec_dim=word_vec_dim, max_seq_len=max_seq_len)
+    if 3 == len(sys.argv):
+        my_seq2seq = MySeq2Seq(word_vec_dim=word_vec_dim, max_seq_len=max_seq_len, input_file=sys.argv[2])
+    else:
+        my_seq2seq = MySeq2Seq(word_vec_dim=word_vec_dim, max_seq_len=max_seq_len)
     if phrase == 'train':
         my_seq2seq.train()
     else:
@@ -202,7 +239,9 @@ if __name__ == '__main__':
         trainXY, trainY = my_seq2seq.generate_trainig_data()
         predict = model.predict(trainXY)
         for sample in predict:
-            print "predict answer"
+            print("predict answer")
             for w in sample[1:]:
                 (match_word, max_cos) = vector2word(w)
-                print match_word, max_cos
+                #if vector_sqrtlen(w) < 1:
+                #    break
+                print(match_word, max_cos, vector_sqrtlen(w))

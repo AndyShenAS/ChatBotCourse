@@ -21,17 +21,17 @@ max_seq_len = 16
 def load_vectors(input):
     """从vectors.bin加载词向量，返回一个word_vector_dict的词典，key是词，value是200维的向量
     """
-    print "begin load vectors"
+    print("begin load vectors")
 
     input_file = open(input, "rb")
 
     # 获取词表数目及向量维度
     words_and_size = input_file.readline()
     words_and_size = words_and_size.strip()
-    words = long(words_and_size.split(' ')[0])
-    size = long(words_and_size.split(' ')[1])
-    print "words =", words
-    print "size =", size
+    words = int(words_and_size.split(' ')[0])
+    size = int(words_and_size.split(' ')[1])
+    print("words =", words)
+    print("size =", size)
 
     for b in range(0, words):
         a = 0
@@ -58,18 +58,18 @@ def load_vectors(input):
 
     input_file.close()
 
-    print "load vectors finish"
+    print("load vectors finish")
 
 def init_seq():
     """读取切好词的文本文件，加载全部词序列
     """
-    file_object = open('zhenhuanzhuan.segment', 'r')
+    file_object = open('corpus.segment.pair', 'r')
     vocab_dict = {}
     while True:
         line = file_object.readline()
         if line:
             for word in line.decode('utf-8').split(' '):
-                if word_vector_dict.has_key(word):
+                if word in word_vector_dict:
                     seq.append(word_vector_dict[word])
         else:
             break
@@ -128,10 +128,10 @@ class MySeq2Seq(object):
             end = (i+1)*self.max_seq_len*2
             sequence_xy = seq[start:end]
             sequence_y = seq[middle:end]
-            print "right answer"
+            print("right answer")
             for w in sequence_y:
                 (match_word, max_cos) = vector2word(w)
-                print match_word
+                print(match_word)
             sequence_y = [np.ones(self.word_vec_dim)] + sequence_y
             xy_data.append(sequence_xy)
             y_data.append(sequence_y)
@@ -202,7 +202,7 @@ if __name__ == '__main__':
         trainXY, trainY = my_seq2seq.generate_trainig_data()
         predict = model.predict(trainXY)
         for sample in predict:
-            print "predict answer"
+            print("predict answer")
             for w in sample[1:]:
                 (match_word, max_cos) = vector2word(w)
-                print match_word, max_cos
+                print(match_word, max_cos)

@@ -16,17 +16,17 @@ word_vector_dict = {}
 def load_vectors(input):
     """从vectors.bin加载词向量，返回一个word_vector_dict的词典，key是词，value是200维的向量
     """
-    print "begin load vectors"
+    print("begin load vectors")
 
     input_file = open(input, "rb")
 
     # 获取词表数目及向量维度
     words_and_size = input_file.readline()
     words_and_size = words_and_size.strip()
-    words = long(words_and_size.split(' ')[0])
-    size = long(words_and_size.split(' ')[1])
-    print "words =", words
-    print "size =", size
+    words = int(words_and_size.split(' ')[0])
+    size = int(words_and_size.split(' ')[1])
+    print("words =", words)
+    print("size =", size)
 
     for b in range(0, words):
         a = 0
@@ -52,7 +52,7 @@ def load_vectors(input):
 
     input_file.close()
 
-    print "load vectors finish"
+    print("load vectors finish")
 
 def init_seq():
     """读取切好词的文本文件，加载全部词序列
@@ -63,7 +63,7 @@ def init_seq():
         line = file_object.readline()
         if line:
             for word in line.decode('utf-8').split(' '):
-                if word_vector_dict.has_key(word):
+                if word in word_vector_dict:
                     seq.append(word_vector_dict[word])
         else:
             break
@@ -113,7 +113,7 @@ def main():
         if test_X is None:
             test_X = np.array(sequence)
             (match_word, max_cos) = vector2word(seq[i+20])
-            print "right answer=", match_word, max_cos
+            print("right answer=", match_word, max_cos)
 
     X = np.array(xlist)
     Y = np.array(ylist)
@@ -130,7 +130,7 @@ def main():
     #for v in test_X:
     #    print vector2word(v)
     (match_word, max_cos) = vector2word(predict[0])
-    print "predict=", match_word, max_cos
+    print("predict=", match_word, max_cos)
 
 main()
 #init_seq()
@@ -195,9 +195,9 @@ def case_linear_regression():
                                             metric='R2', learning_rate=0.01)
     model = tflearn.DNN(net)
     model.fit(x, y, n_epoch=200, snapshot_epoch=False,show_metric=True,batch_size=1)
-    print model.predict([8,9]) # [15.990408897399902, 17.988374710083008]
-    print model.get_weights(linear.W) # [ 1.99796414]
-    print model.get_weights(linear.b) # [ 0.00669619]
+    print(model.predict([8,9])) # [15.990408897399902, 17.988374710083008]
+    print(model.get_weights(linear.W)) # [ 1.99796414]
+    print(model.get_weights(linear.b)) # [ 0.00669619]
 
 #case_linear_regression()
 

@@ -32,7 +32,7 @@ def init_word_id_dict():
 
             for word in words:
                 if len(word)>0:
-                    if vocab_dict.has_key(word):
+                    if word in vocab_dict:
                         vocab_dict[word] = vocab_dict[word] + 1
                     else:
                         vocab_dict[word] = 1
@@ -40,7 +40,7 @@ def init_word_id_dict():
             break
     file_object.close()
 
-    vocab_dict = sorted(vocab_dict.items(), key=lambda d: d[1], reverse = True)
+    vocab_dict = sorted(list(vocab_dict.items()), key=lambda d: d[1], reverse = True)
 
     uuid = 1
 
@@ -50,7 +50,7 @@ def init_word_id_dict():
         id_word_dict[uuid] = word
         #if freq > 20:
         #    print word, uuid, freq
-        print word, uuid, freq
+        print(word, uuid, freq)
         uuid = uuid + 1
         if uuid > max_word_id:
             break
@@ -107,9 +107,9 @@ def create_model(max_word_id, is_test=False):
             metric=accuracy,
             name="Y")
 
-    print "begin create DNN model"
+    print("begin create DNN model")
     model = tflearn.DNN(network, tensorboard_verbose=0, checkpoint_path=None)
-    print "create DNN model finish"
+    print("create DNN model finish")
     return model
 
 def print_sentence(list, msg):
@@ -117,7 +117,7 @@ def print_sentence(list, msg):
     for item in list:
         if item != 0:
             sentence = sentence + id_word_dict[item]
-    print sentence
+    print(sentence)
 
 if __name__ == '__main__':
     if len(sys.argv) > 1 and sys.argv[1] == 'test':
@@ -125,7 +125,7 @@ if __name__ == '__main__':
     else:
         is_test = False
     (word_id_dict, max_word_id) = init_word_id_dict()
-    print "max_word_id =", max_word_id
+    print("max_word_id =", max_word_id)
 
     model = create_model(max_word_id, is_test)
 
@@ -161,7 +161,7 @@ if __name__ == '__main__':
                 question_has_word = False
                 answer_has_word = False
                 for word in last_words:
-                    if len(word)>0 and word_id_dict.has_key(word):
+                    if len(word)>0 and word in word_id_dict:
                         word_id = word_id_dict[word]
                         question_id_list.append(word_id)
                         question = question + word
@@ -175,7 +175,7 @@ if __name__ == '__main__':
 
                 idx = 0
                 for word in words:
-                    if len(word)>0 and word_id_dict.has_key(word):
+                    if len(word)>0 and word in word_id_dict:
                         word_id = word_id_dict[word]
                         answer_id_list.append(word_id)
                         answer = answer + word
