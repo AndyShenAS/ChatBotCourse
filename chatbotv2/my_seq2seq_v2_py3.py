@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-
+#smy smy
 import sys
 import math
 import tflearn
@@ -9,6 +9,8 @@ from tensorflow.python.ops import rnn
 import chardet
 import numpy as np
 import struct
+sys.path.append('../')
+from word_segment_py3 import segment
 
 question_seqs = []
 answer_seqs = []
@@ -157,7 +159,7 @@ class MySeq2Seq(object):
     def generate_trainig_data(self):
         load_word_set()
         load_vectors("./vectors.bin")
-        init_seq(self.input_file)
+        init_seq(self.input_file)    #这里产生问答向量列表
         xy_data = []
         y_data = []
         for i in range(len(question_seqs)):
@@ -239,9 +241,20 @@ if __name__ == '__main__':
     phrase = sys.argv[1]
     if 3 == len(sys.argv):
         file = open('./test.data',"w", encoding='utf-8')
-        # file.write(sys.argv[2]+'|')
-        file.write(sys.argv[2]+'')
+        write_str = sys.argv[2]
+        file.write(write_str)
+        # file.write(sys.argv[2]+'')
         file.close()
+        segment('./test.data','./test1.data')
+        file = open('./test1.data',"r", encoding='utf-8')
+        write_str = file.readline()
+        write_str = write_str.strip('\n')
+        write_str = write_str+'|'
+        file.close()
+        file = open('./test.data',"w", encoding='utf-8')
+        file.write(write_str)
+        file.close()
+
         my_seq2seq = MySeq2Seq(word_vec_dim=word_vec_dim, max_seq_len=max_seq_len, input_file='./test.data')
         # my_seq2seq = MySeq2Seq(word_vec_dim=word_vec_dim, max_seq_len=max_seq_len, input_file=sys.argv[2])
     else:

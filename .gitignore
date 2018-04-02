@@ -5,3 +5,6 @@ __pycache__
 .classpath
 .project
 .settings
+wechat.db
+vectors.bin
+text8
