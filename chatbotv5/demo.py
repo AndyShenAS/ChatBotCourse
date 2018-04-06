@@ -24,7 +24,7 @@ size = 8
 # 初始学习率
 init_learning_rate = 1
 # 在样本中出现频率超过这个值才会进入词表
-min_freq = 2
+min_freq = 40
 
 wordToken = word_token.WordToken()
 
@@ -34,6 +34,7 @@ wordToken = word_token.WordToken()
 max_token_id = wordToken.load_file_list(['./samples/question.big', './samples/answer.big'], min_freq)
 num_encoder_symbols = max_token_id + 5
 num_decoder_symbols = max_token_id + 5
+print('num_symbols： ',num_decoder_symbols)
 
 
 def get_id_list_from(sentence):
@@ -82,7 +83,7 @@ def get_samples(train_set, batch_num):
     # train_set = [[[5, 7, 9], [11, 13, 15, EOS_ID]], [[7, 9, 11], [13, 15, 17, EOS_ID]], [[15, 17, 19], [21, 23, 25, EOS_ID]]]
     raw_encoder_input = []
     raw_decoder_input = []
-    print('length of trainset: ',len(train_set))
+    # print('length of trainset: ',len(train_set))
     if batch_num >= len(train_set):
         batch_train_set = train_set
     else:
@@ -180,7 +181,7 @@ def train():
         # 全部变量初始化
         sess.run(tf.global_variables_initializer())
         # saver.restore(sess, './model/demo')   #换这句可以接着上次的训练
-        print(‘get model successfully.....’)
+        print('get model successfully.....')
 
         # 训练很多次迭代，每隔10次打印一次loss，可以看情况直接ctrl+c停止
         previous_losses = []
