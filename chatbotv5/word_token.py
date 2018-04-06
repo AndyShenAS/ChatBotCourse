@@ -39,8 +39,8 @@ class WordToken(object):
         return index
 
     def word2id(self, word):
-        if not isinstance(word, unicode):
-            print "Exception: error word not unicode"
+        if not isinstance(word, str):
+            print("Exception: error word not unicode")
             sys.exit(1)
         if word in self.word2id_dict:
             return self.word2id_dict[word]
@@ -53,4 +53,3 @@ class WordToken(object):
             return self.id2word_dict[id]
         else:
             return None
-

@@ -167,12 +167,14 @@ class MySeq2Seq(object):
             question_seq = question_seqs[i]
             answer_seq = answer_seqs[i]
             if len(question_seq) < self.max_seq_len and len(answer_seq) < self.max_seq_len:
-                sequence_xy = [np.zeros(self.word_vec_dim)] * (self.max_seq_len-len(question_seq)) + list(reversed(question_seq))
+                # sequence_xy = [np.zeros(self.word_vec_dim)] * (self.max_seq_len-len(question_seq)) + list(reversed(question_seq))
+                sequence_xy = [np.zeros(self.word_vec_dim)] * (self.max_seq_len-len(question_seq)) + question_seq
                 sequence_y = answer_seq + [np.zeros(self.word_vec_dim)] * (self.max_seq_len-len(answer_seq))
                 sequence_xy = sequence_xy + sequence_y
                 sequence_y = [np.ones(self.word_vec_dim)] + sequence_y
                 xy_data.append(sequence_xy)
                 y_data.append(sequence_y)
+
 
                 #print "right answer"
                 #for w in answer_seq:
@@ -180,26 +182,33 @@ class MySeq2Seq(object):
                 #    if len(match_word)>0:
                 #        print match_word, vector_sqrtlen(w)
 
+
         return np.array(xy_data), np.array(y_data)
 
 
     def model(self, feed_previous=False):
         # 通过输入的XY生成encoder_inputs和带GO头的decoder_inputs
+        #smyshape的第一个参数none是batch size
         input_data = tflearn.input_data(shape=[None, self.max_seq_len*2, self.word_vec_dim], dtype=tf.float32, name = "XY")
         encoder_inputs = tf.slice(input_data, [0, 0, 0], [-1, self.max_seq_len, self.word_vec_dim], name="enc_in")
+        # decoder_inputs_tmp = tf.slice(input_data, [0, self.max_seq_len, 0], [-1, self.max_seq_len-1, self.word_vec_dim], name="dec_in_tmp")
         decoder_inputs_tmp = tf.slice(input_data, [0, self.max_seq_len, 0], [-1, self.max_seq_len-1, self.word_vec_dim], name="dec_in_tmp")
         go_inputs = tf.ones_like(decoder_inputs_tmp)
         go_inputs = tf.slice(go_inputs, [0, 0, 0], [-1, 1, self.word_vec_dim])
         decoder_inputs = tf.concat([go_inputs, decoder_inputs_tmp], 1, name="dec_in")
+        #加入Go头
 
         # 编码器
         # 把encoder_inputs交给编码器，返回一个输出(预测序列的第一个值)和一个状态(传给解码器)
         (encoder_output_tensor, states) = tflearn.lstm(encoder_inputs, self.word_vec_dim, return_state=True, scope='encoder_lstm')
         encoder_output_sequence = tf.stack([encoder_output_tensor], axis=1)
+        # with tf.Session() as sess:
+        #     print(sess.run(encoder_output_sequence))
 
         # 解码器
         # 预测过程用前一个时间序的输出作为下一个时间序的输入
         # 先用编码器的最后一个输出作为第一个输入
+        # feed_previous为true，用来生成回复。否则是训练
         if feed_previous:
             first_dec_input = go_inputs
         else:
@@ -221,7 +230,8 @@ class MySeq2Seq(object):
         real_output_sequence = tf.concat([encoder_output_sequence, decoder_output_sequence],1)
         # smy 把concat中参数1从前面换到后面
 
-        net = tflearn.regression(real_output_sequence, optimizer='sgd', learning_rate=0.1, loss='mean_square')
+        # net = tflearn.regression(real_output_sequence, optimizer='sgd', learning_rate=0.1, loss='mean_square')
+        net = tflearn.regression(real_output_sequence, optimizer='sgd', learning_rate=0.1, loss='categorical_crossentropy')
         model = tflearn.DNN(net)
         return model
 
@@ -264,6 +274,9 @@ if __name__ == '__main__':
     else:
         model = my_seq2seq.load()
         trainXY, trainY = my_seq2seq.generate_trainig_data()
+        # np.set_printoptions(threshold=np.NaN)
+        # print(trainXY)
+        # print(trainY)
         predict = model.predict(trainXY)
         for sample in predict:
             print("predict answer")
