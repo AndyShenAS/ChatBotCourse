@@ -9,18 +9,14 @@ import word_token
 import jieba
 import random
 
-# 输入序列长度
-input_seq_len = 5
-# 输出序列长度
-output_seq_len = 7
+
 # 空值填充0
 PAD_ID = 0
 # 输出序列起始标记
 GO_ID = 1
 # 结尾标记
 EOS_ID = 2
-# LSTM神经元size
-size = 8
+
 # 初始学习率
 init_learning_rate = 1
 # 在样本中出现频率超过这个值才会进入词表
@@ -29,13 +25,21 @@ init_learning_rate = 1
 wordToken = word_token.WordToken()
 # saver.save(sess, './model/bigcorpus/demo')
 
-if 0:
+
+if 1:
     question_path = './samples/backup/question'
     answer_path = './samples/backup/answer'
     model_path = './model/demo'
     batchNUM = 1000
     learning_rate_threshold = 5
-    min_freq = 2
+    min_freq = 1
+    # 输入序列长度
+    input_seq_len = 7
+    # 输出序列长度
+    output_seq_len = 9
+    # LSTM神经元size
+    size = 10
+    Epoches = 50000
 else:
     # question_path = './samples/question.big'
     # answer_path = './samples/answer.big'
@@ -45,6 +49,13 @@ else:
     batchNUM = 10000
     learning_rate_threshold = 8
     min_freq = 40
+    # 输入序列长度
+    input_seq_len = 5
+    # 输出序列长度
+    output_seq_len = 7
+    # LSTM神经元size
+    size = 8
+    Epoches = 10000
 
 
 # 放在全局的位置，为了动态算出num_encoder_symbols和num_decoder_symbols
@@ -205,7 +216,7 @@ def train():
 
         # 训练很多次迭代，每隔10次打印一次loss，可以看情况直接ctrl+c停止
         previous_losses = []
-        for step in range(10000):
+        for step in range(Epoches):
             sample_encoder_inputs, sample_decoder_inputs, sample_target_weights = get_samples(train_set, batchNUM)
             input_feed = {}
             for l in range(input_seq_len):
