@@ -12,7 +12,7 @@ import random
 # 输入序列长度
 input_seq_len = 5
 # 输出序列长度
-output_seq_len = 5
+output_seq_len = 7
 # 空值填充0
 PAD_ID = 0
 # 输出序列起始标记
@@ -79,7 +79,7 @@ def get_train_set():
 
                     question_id_list = get_id_list_from(question)
                     answer_id_list = get_id_list_from(answer)
-                    if len(question_id_list) > 0 and len(answer_id_list) > 0:
+                    if len(question_id_list) > 0 and len(answer_id_list) > 0 and len(question_id_list) <= input_seq_len and len(answer_id_list) <= output_seq_len-2:
                         answer_id_list.append(EOS_ID)
                         train_set.append([question_id_list, answer_id_list])
                 else:
