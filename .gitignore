@@ -8,3 +8,5 @@ __pycache__
 wechat.db
 vectors.bin
 text8
+chatbotv5/model/bigcorpus/
+

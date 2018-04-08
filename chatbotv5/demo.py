@@ -24,14 +24,32 @@ size = 8
 # 初始学习率
 init_learning_rate = 1
 # 在样本中出现频率超过这个值才会进入词表
-min_freq = 40
+
 
 wordToken = word_token.WordToken()
+# saver.save(sess, './model/bigcorpus/demo')
+
+if 0:
+    question_path = './samples/backup/question'
+    answer_path = './samples/backup/answer'
+    model_path = './model/demo'
+    batchNUM = 1000
+    learning_rate_threshold = 5
+    min_freq = 2
+else:
+    # question_path = './samples/question.big'
+    # answer_path = './samples/answer.big'
+    question_path = './samples/question.big.norepeat'
+    answer_path = './samples/answer.big.norepeat'
+    model_path = './model/bigcorpus/demo'
+    batchNUM = 10000
+    learning_rate_threshold = 8
+    min_freq = 40
 
 
 # 放在全局的位置，为了动态算出num_encoder_symbols和num_decoder_symbols
-# max_token_id = wordToken.load_file_list(['./samples/backup/question', './samples/backup/answer'], min_freq)
-max_token_id = wordToken.load_file_list(['./samples/question.big', './samples/answer.big'], min_freq)
+max_token_id = wordToken.load_file_list([question_path, answer_path], min_freq)
+# max_token_id = wordToken.load_file_list(['./samples/question.big', './samples/answer.big'], min_freq)
 num_encoder_symbols = max_token_id + 5
 num_decoder_symbols = max_token_id + 5
 print('num_symbols： ',num_decoder_symbols)
@@ -50,10 +68,8 @@ def get_id_list_from(sentence):
 def get_train_set():
     global num_encoder_symbols, num_decoder_symbols
     train_set = []
-    # with open('./samples/backup/question', 'r') as question_file:
-    #     with open('./samples/backup/answer', 'r') as answer_file:
-    with open('./samples/question.big', 'r') as question_file:
-        with open('./samples/answer.big', 'r') as answer_file:
+    with open(question_path, 'r') as question_file:
+        with open(answer_path, 'r') as answer_file:
             while True:
                 question = question_file.readline()
                 answer = answer_file.readline()
@@ -68,6 +84,8 @@ def get_train_set():
                         train_set.append([question_id_list, answer_id_list])
                 else:
                     break
+
+    print('tainset length: ',len(train_set))
     return train_set
 
 
@@ -84,6 +102,7 @@ def get_samples(train_set, batch_num):
     raw_encoder_input = []
     raw_decoder_input = []
     # print('length of trainset: ',len(train_set))
+    # batch_train_set = train_set
     if batch_num >= len(train_set):
         batch_train_set = train_set
     else:
@@ -125,6 +144,7 @@ def get_model(feed_previous=False):
 
     learning_rate = tf.Variable(float(init_learning_rate), trainable=False, dtype=tf.float32)
     learning_rate_decay_op = learning_rate.assign(learning_rate * 0.9)
+    learning_rate_increase_op = learning_rate.assign(learning_rate * 1.1)
 
     encoder_inputs = []
     decoder_inputs = []
@@ -162,7 +182,7 @@ def get_model(feed_previous=False):
     # 模型持久化
     saver = tf.train.Saver(tf.global_variables())
 
-    return encoder_inputs, decoder_inputs, target_weights, outputs, loss, update, saver, learning_rate_decay_op, learning_rate
+    return encoder_inputs, decoder_inputs, target_weights, outputs, loss, update, saver, learning_rate_decay_op, learning_rate_increase_op, learning_rate
 
 
 def train():
@@ -176,17 +196,17 @@ def train():
     print('length of trainset: ',len(train_set))
     with tf.Session() as sess:
 
-        encoder_inputs, decoder_inputs, target_weights, outputs, loss, update, saver, learning_rate_decay_op, learning_rate = get_model()
+        encoder_inputs, decoder_inputs, target_weights, outputs, loss, update, saver, learning_rate_decay_op, learning_rate_increase_op, learning_rate = get_model()
 
         # 全部变量初始化
         sess.run(tf.global_variables_initializer())
-        # saver.restore(sess, './model/demo')   #换这句可以接着上次的训练
+        # saver.restore(sess, model_path)   #换这句可以接着上次的训练
         print('get model successfully.....')
 
         # 训练很多次迭代，每隔10次打印一次loss，可以看情况直接ctrl+c停止
         previous_losses = []
-        for step in range(100000):
-            sample_encoder_inputs, sample_decoder_inputs, sample_target_weights = get_samples(train_set, 1000)
+        for step in range(10000):
+            sample_encoder_inputs, sample_decoder_inputs, sample_target_weights = get_samples(train_set, batchNUM)
             input_feed = {}
             for l in range(input_seq_len):
                 input_feed[encoder_inputs[l].name] = sample_encoder_inputs[l]
@@ -198,12 +218,15 @@ def train():
             if step % 10 == 0:
                 print('step=', step, 'loss=', loss_ret, 'learning_rate=', learning_rate.eval())
 
-                if len(previous_losses) > 5 and loss_ret > max(previous_losses[-5:]):
+                if len(previous_losses) > learning_rate_threshold and loss_ret > max(previous_losses[-learning_rate_threshold:]):
                     sess.run(learning_rate_decay_op)
+            # if len(previous_losses) > learning_rate_threshold and loss_ret < min(previous_losses[-learning_rate_threshold:]):
+            #     sess.run(learning_rate_increase_op)
                 previous_losses.append(loss_ret)
 
         # 模型持久化 , 最后再保存
-        saver.save(sess, './model/demo')
+        saver.save(sess, model_path)
+
 
 
 def predict():
@@ -211,8 +234,8 @@ def predict():
     预测过程
     """
     with tf.Session() as sess:
-        encoder_inputs, decoder_inputs, target_weights, outputs, loss, update, saver, learning_rate_decay_op, learning_rate = get_model(feed_previous=True)
-        saver.restore(sess, './model/demo')
+        encoder_inputs, decoder_inputs, target_weights, outputs, loss, update, saver, learning_rate_decay_op, learning_rate_increase_op, learning_rate = get_model(feed_previous=True)
+        saver.restore(sess, model_path)
         sys.stdout.write("> ")
         sys.stdout.flush()
         input_seq = sys.stdin.readline()
