@@ -17,8 +17,7 @@ GO_ID = 1
 # 结尾标记
 EOS_ID = 2
 
-# 初始学习率
-init_learning_rate = 1
+
 # 在样本中出现频率超过这个值才会进入词表
 
 
@@ -39,7 +38,18 @@ if 1:
     output_seq_len = 9
     # LSTM神经元size
     size = 10
-    Epoches = 50000
+    # 初始学习率
+    # init_learning_rate = 1
+    init_learning_rate = 0.0017970073
+    Epoches = 200000
+    # step= 49990 loss= 0.57324296 learning_rate= 0.007855157
+    # step= 49990 loss= 0.5078533 learning_rate= 0.004174552
+    # step= 99990 loss= 0.45555034 learning_rate= 0.0017970073
+    # step= 199990 loss= 0.4141012 learning_rate= 0.0010611147s
+
+
+
+
 else:
     # question_path = './samples/question.big'
     # answer_path = './samples/answer.big'
@@ -55,6 +65,8 @@ else:
     output_seq_len = 7
     # LSTM神经元size
     size = 8
+    # 初始学习率
+    init_learning_rate = 1
     Epoches = 10000
 
 
@@ -211,7 +223,7 @@ def train():
 
         # 全部变量初始化
         sess.run(tf.global_variables_initializer())
-        # saver.restore(sess, model_path)   #换这句可以接着上次的训练
+        saver.restore(sess, model_path)   #换这句可以接着上次的训练
         print('get model successfully.....')
 
         # 训练很多次迭代，每隔10次打印一次loss，可以看情况直接ctrl+c停止

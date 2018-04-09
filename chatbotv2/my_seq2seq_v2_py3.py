@@ -183,7 +183,7 @@ class MySeq2Seq(object):
                 #        print match_word, vector_sqrtlen(w)
 
 
-        return np.array(xy_data), np.array(y_data)
+        return 10*np.array(xy_data), 10*np.array(y_data)
 
 
     def model(self, feed_previous=False):
@@ -193,7 +193,7 @@ class MySeq2Seq(object):
         encoder_inputs = tf.slice(input_data, [0, 0, 0], [-1, self.max_seq_len, self.word_vec_dim], name="enc_in")
         # decoder_inputs_tmp = tf.slice(input_data, [0, self.max_seq_len, 0], [-1, self.max_seq_len-1, self.word_vec_dim], name="dec_in_tmp")
         decoder_inputs_tmp = tf.slice(input_data, [0, self.max_seq_len, 0], [-1, self.max_seq_len-1, self.word_vec_dim], name="dec_in_tmp")
-        go_inputs = tf.ones_like(decoder_inputs_tmp)
+        go_inputs = 10*tf.ones_like(decoder_inputs_tmp)
         go_inputs = tf.slice(go_inputs, [0, 0, 0], [-1, 1, self.word_vec_dim])
         decoder_inputs = tf.concat([go_inputs, decoder_inputs_tmp], 1, name="dec_in")
         #加入Go头
@@ -227,18 +227,22 @@ class MySeq2Seq(object):
             decoder_output_sequence_list.append(decoder_output_tensor)
 
         decoder_output_sequence = tf.stack(decoder_output_sequence_list, axis=1)
+
         real_output_sequence = tf.concat([encoder_output_sequence, decoder_output_sequence],1)
         # smy 把concat中参数1从前面换到后面
+        print('real_output_sequence:',real_output_sequence.get_shape())
 
-        # net = tflearn.regression(real_output_sequence, optimizer='sgd', learning_rate=0.1, loss='mean_square')
-        net = tflearn.regression(real_output_sequence, optimizer='sgd', learning_rate=0.1, loss='categorical_crossentropy')
+        net = tflearn.regression(real_output_sequence, optimizer='sgd', learning_rate=1.0, loss='mean_square')
+        # net = tflearn.regression(real_output_sequence, optimizer='sgd', learning_rate=0.1, loss='categorical_crossentropy')
         model = tflearn.DNN(net)
         return model
 
     def train(self):
         trainXY, trainY = self.generate_trainig_data()
+        print('trainXY:',trainXY.shape)
+        print('trainY:',trainY.shape)
         model = self.model(feed_previous=False)
-        model.fit(trainXY, trainY, n_epoch=1000, snapshot_epoch=False, batch_size=1)
+        model.fit(trainXY, trainY, n_epoch=10, snapshot_epoch=False, batch_size=1)
         model.save('./model/model')
         return model
 
