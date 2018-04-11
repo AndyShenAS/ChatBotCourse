@@ -53,7 +53,7 @@ def load_vectors(input):
             vector[index] = weight
 
         # 将词及其对应的向量存到dict中
-        word_vector[word] = vector
+        word_vector[word] = vector.tolist()
 
     input_file.close()
 
@@ -61,7 +61,7 @@ def load_vectors(input):
     return word_vector
 
 def load_word_set():
-    file_object = open('./chatbotv2/corpus.segment', 'r')
+    file_object = open('../chatbotv2/corpus.segment', 'r')
     word_set = {}
     while True:
         line = file_object.readline()
@@ -77,12 +77,7 @@ def load_word_set():
     file_object.close()
     return word_set
 
-if __name__ == '__main__':
-    if 2 != len(sys.argv):
-        print("Usage: ", sys.argv[0], "vectors.bin")
-        sys.exit(-1)
-        # 提示怎么写参数的file = open('question',"w", encoding='utf-8')
-    d = load_vectors(sys.argv[1])
+def save_words(d):
     keys = d.keys()
     word_set = load_word_set()
     wrSTR = ''
@@ -104,7 +99,7 @@ if __name__ == '__main__':
     print(count)
     print(len(d))
     print(len(word_set))
-    file = open('./chatbotv2/keyWords.txt',"w", encoding='utf-8')
+    file = open('../chatbotv2/keyWords.txt',"w", encoding='utf-8')
     file.write(wrSTR)
     file.close()
     # print(word_set)
@@ -117,8 +112,54 @@ if __name__ == '__main__':
     wrSTR = ''
     for k,v in sorted(word_set.items(), key=lambda x:x[1], reverse=True):
         wrSTR += str(k)+ ': ' + str(v)+ '\n'
-    file = open('./chatbotv2/allWords.txt',"w", encoding='utf-8')
+    file = open('../chatbotv2/allWords.txt',"w", encoding='utf-8')
     file.write(wrSTR)
     file.close()
     # print(d[u'真的'])
     # print(d)
+
+def save_dic(d):
+    f = open('./data/vectors.dic','w')
+    f.write(str(d))
+    f.close()
+def load_dic():
+    f = open('./data/vectors.dic','r')
+    a = f.read()
+    dict_name = eval(a)
+    f.close()
+    count = 0
+    for each in dict_name:
+        if count<3:
+            print(each,': \n')
+            print(dict_name[each],'\n')
+        else:
+            break
+        count += 1
+
+if __name__ == '__main__':
+    if 2 != len(sys.argv):
+        print("Usage: ", sys.argv[0], "vectors.bin")
+        sys.exit(-1)
+        # 提示怎么写参数的file = open('question',"w", encoding='utf-8')
+    d = load_vectors(sys.argv[1])
+    # save_dic(d)
+    load_dic()
+
+    # save_words(d)
+
+
+
+
+
+
+#     #保存
+# dict_name = {1:{1:2,3:4},2:{3:4,4:5}}
+# f = open('temp.txt','w')
+# f.write(str(dict_name))
+# f.close()
+#
+# #读取
+# f = open('temp.txt','r')
+# a = f.read()
+# dict_name = eval(a)
+# f.close()

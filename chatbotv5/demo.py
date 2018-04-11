@@ -24,10 +24,12 @@ EOS_ID = 2
 wordToken = word_token.WordToken()
 # saver.save(sess, './model/bigcorpus/demo')
 
+option = 3
 
-if 1:
+if option == 1:
     question_path = './samples/backup/question'
     answer_path = './samples/backup/answer'
+    train_set_modify = 0
     model_path = './model/demo'
     batchNUM = 1000
     learning_rate_threshold = 5
@@ -40,21 +42,19 @@ if 1:
     size = 10
     # 初始学习率
     # init_learning_rate = 1
-    init_learning_rate = 0.0017970073
+    init_learning_rate = 1
     Epoches = 200000
     # step= 49990 loss= 0.57324296 learning_rate= 0.007855157
     # step= 49990 loss= 0.5078533 learning_rate= 0.004174552
     # step= 99990 loss= 0.45555034 learning_rate= 0.0017970073
     # step= 199990 loss= 0.4141012 learning_rate= 0.0010611147s
 
-
-
-
-else:
+elif option == 2:
     # question_path = './samples/question.big'
     # answer_path = './samples/answer.big'
     question_path = './samples/question.big.norepeat'
     answer_path = './samples/answer.big.norepeat'
+    train_set_modify = 0
     model_path = './model/bigcorpus/demo'
     batchNUM = 10000
     learning_rate_threshold = 8
@@ -68,6 +68,29 @@ else:
     # 初始学习率
     init_learning_rate = 1
     Epoches = 10000
+
+
+elif option == 3:
+    question_path = './samples/backup/question'
+    answer_path = './samples/backup/answer'
+    model_path = './model/autoencoder/demo'
+    train_set_modify = 1
+    batchNUM = 2000
+    learning_rate_threshold = 5
+    min_freq = 1
+    # 输入序列长度
+    input_seq_len = 7
+    # 输出序列长度
+    output_seq_len = 9
+    # LSTM神经元size
+    size = 10
+    # 初始学习率
+    # init_learning_rate = 1
+    init_learning_rate = 0.04239112
+    Epoches = 500000
+    # step= 9990 loss= 0.55949193 learning_rate= 0.04239112
+
+
 
 
 # 放在全局的位置，为了动态算出num_encoder_symbols和num_decoder_symbols
@@ -103,13 +126,24 @@ def get_train_set():
                     question_id_list = get_id_list_from(question)
                     answer_id_list = get_id_list_from(answer)
                     if len(question_id_list) > 0 and len(answer_id_list) > 0 and len(question_id_list) <= input_seq_len and len(answer_id_list) <= output_seq_len-2:
-                        answer_id_list.append(EOS_ID)
-                        train_set.append([question_id_list, answer_id_list])
+                        if train_set_modify == 1:
+                            print('yes')
+                            question_id_list_noEOS = question_id_list[:]
+                            question_id_list.append(EOS_ID)
+                            train_set.append([question_id_list_noEOS, question_id_list])
+                            answer_id_list_noEOS = answer_id_list[:]
+                            answer_id_list.append(EOS_ID)
+                            train_set.append([answer_id_list_noEOS, answer_id_list])
+                        else:
+                            answer_id_list.append(EOS_ID)
+                            train_set.append([question_id_list, answer_id_list])
                 else:
                     break
 
     print('tainset length: ',len(train_set))
     return train_set
+
+
 
 
 def get_samples(train_set, batch_num):
