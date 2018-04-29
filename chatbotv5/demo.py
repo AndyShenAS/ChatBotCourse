@@ -23,8 +23,8 @@ EOS_ID = 2
 
 wordToken = word_token.WordToken()
 # saver.save(sess, './model/bigcorpus/demo')
-
-option = 3
+log_dir = '/tmp/tensorflow/old_seq2seq_logs'
+option = 1
 
 if option == 1:
     question_path = './samples/backup/question'
@@ -34,6 +34,7 @@ if option == 1:
     batchNUM = 1000
     learning_rate_threshold = 5
     min_freq = 1
+
     # 输入序列长度
     input_seq_len = 7
     # 输出序列长度
@@ -42,12 +43,14 @@ if option == 1:
     size = 10
     # 初始学习率
     # init_learning_rate = 1
-    init_learning_rate = 1
-    Epoches = 200000
+    init_learning_rate = 0.0010611147
+    Epoches = 1000
     # step= 49990 loss= 0.57324296 learning_rate= 0.007855157
     # step= 49990 loss= 0.5078533 learning_rate= 0.004174552
     # step= 99990 loss= 0.45555034 learning_rate= 0.0017970073
-    # step= 199990 loss= 0.4141012 learning_rate= 0.0010611147s
+    # step= 199990 loss= 0.4141012 learning_rate= 0.0010611147
+    #step= 990 loss= 0.41393718 learning_rate= 0.0010611147
+
 
 elif option == 2:
     # question_path = './samples/question.big'
@@ -232,6 +235,9 @@ def get_model(feed_previous=False):
 
     # 计算加权交叉熵损失
     loss = seq2seq.sequence_loss(outputs, targets, target_weights)
+    ######################
+    tf.summary.scalar('loss',loss)
+    ###########################
     # 梯度下降优化器
     opt = tf.train.GradientDescentOptimizer(learning_rate)
     # 优化目标：让loss最小化
@@ -260,6 +266,11 @@ def train():
         saver.restore(sess, model_path)   #换这句可以接着上次的训练
         print('get model successfully.....')
 
+        ####################################################
+        merged_summary_op = tf.summary.merge_all()
+        summary_writer = tf.summary.FileWriter(log_dir, sess.graph)
+        ####################################################
+
         # 训练很多次迭代，每隔10次打印一次loss，可以看情况直接ctrl+c停止
         previous_losses = []
         for step in range(Epoches):
@@ -271,7 +282,12 @@ def train():
                 input_feed[decoder_inputs[l].name] = sample_decoder_inputs[l]
                 input_feed[target_weights[l].name] = sample_target_weights[l]
             input_feed[decoder_inputs[output_seq_len].name] = np.zeros([len(sample_decoder_inputs[0])], dtype=np.int32)
-            [loss_ret, _] = sess.run([loss, update], input_feed)
+            [loss_ret, _, summary_str] = sess.run([loss, update, merged_summary_op], input_feed)
+
+            ###################################################
+            summary_writer.add_summary(summary_str, step)
+            ###################################################
+
             if step % 10 == 0:
                 print('step=', step, 'loss=', loss_ret, 'learning_rate=', learning_rate.eval())
 

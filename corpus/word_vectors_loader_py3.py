@@ -135,15 +135,27 @@ def load_dic():
         else:
             break
         count += 1
+    return dict_name
+def dic_length(wordVector):
+    dicL = {}
+    for each in wordVector:
+        dicL[each] = np.linalg.norm(np.array(wordVector[each]))
+    wrSTR = ''
+    for each in dicL:
+        wrSTR += str(each)+': '+str(dicL[each])+'\n'
+    f = open('./data/vectors_length.dic','w')
+    f.write(wrSTR)
+    f.close()
 
 if __name__ == '__main__':
     if 2 != len(sys.argv):
         print("Usage: ", sys.argv[0], "vectors.bin")
         sys.exit(-1)
         # 提示怎么写参数的file = open('question',"w", encoding='utf-8')
-    d = load_vectors(sys.argv[1])
+    # d = load_vectors(sys.argv[1])
     # save_dic(d)
-    load_dic()
+    wordVector = load_dic()
+    dic_length(wordVector)
 
     # save_words(d)
 

@@ -167,8 +167,8 @@ class MySeq2Seq(object):
             question_seq = question_seqs[i]
             answer_seq = answer_seqs[i]
             if len(question_seq) < self.max_seq_len and len(answer_seq) < self.max_seq_len:
-                # sequence_xy = [np.zeros(self.word_vec_dim)] * (self.max_seq_len-len(question_seq)) + list(reversed(question_seq))
-                sequence_xy = [np.zeros(self.word_vec_dim)] * (self.max_seq_len-len(question_seq)) + question_seq
+                sequence_xy = [np.zeros(self.word_vec_dim)] * (self.max_seq_len-len(question_seq)) + list(reversed(question_seq))
+                # sequence_xy = [np.zeros(self.word_vec_dim)] * (self.max_seq_len-len(question_seq)) + question_seq
                 sequence_y = answer_seq + [np.zeros(self.word_vec_dim)] * (self.max_seq_len-len(answer_seq))
                 sequence_xy = sequence_xy + sequence_y
                 sequence_y = [np.ones(self.word_vec_dim)] + sequence_y
@@ -183,7 +183,7 @@ class MySeq2Seq(object):
                 #        print match_word, vector_sqrtlen(w)
 
 
-        return 10*np.array(xy_data), 10*np.array(y_data)
+        return np.array(xy_data), np.array(y_data)
 
 
     def model(self, feed_previous=False):
@@ -193,7 +193,7 @@ class MySeq2Seq(object):
         encoder_inputs = tf.slice(input_data, [0, 0, 0], [-1, self.max_seq_len, self.word_vec_dim], name="enc_in")
         # decoder_inputs_tmp = tf.slice(input_data, [0, self.max_seq_len, 0], [-1, self.max_seq_len-1, self.word_vec_dim], name="dec_in_tmp")
         decoder_inputs_tmp = tf.slice(input_data, [0, self.max_seq_len, 0], [-1, self.max_seq_len-1, self.word_vec_dim], name="dec_in_tmp")
-        go_inputs = 10*tf.ones_like(decoder_inputs_tmp)
+        go_inputs = tf.ones_like(decoder_inputs_tmp)
         go_inputs = tf.slice(go_inputs, [0, 0, 0], [-1, 1, self.word_vec_dim])
         decoder_inputs = tf.concat([go_inputs, decoder_inputs_tmp], 1, name="dec_in")
         #加入Go头
@@ -242,6 +242,7 @@ class MySeq2Seq(object):
         print('trainXY:',trainXY.shape)
         print('trainY:',trainY.shape)
         model = self.model(feed_previous=False)
+        model.load('./model/model')
         model.fit(trainXY, trainY, n_epoch=10, snapshot_epoch=False, batch_size=1)
         model.save('./model/model')
         return model
@@ -278,9 +279,9 @@ if __name__ == '__main__':
     else:
         model = my_seq2seq.load()
         trainXY, trainY = my_seq2seq.generate_trainig_data()
-        # np.set_printoptions(threshold=np.NaN)
-        # print(trainXY)
-        # print(trainY)
+        np.set_printoptions(threshold=np.NaN)
+        # print(trainXY[:1])
+        # print(trainY[:1])
         predict = model.predict(trainXY)
         for sample in predict:
             print("predict answer")

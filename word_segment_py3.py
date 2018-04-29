@@ -26,6 +26,19 @@ def segment(input, output):
     input_file.close()
     output_file.close()
 
+def segment_text(text):
+    line = text.strip()
+    seg_list = jieba.cut(line)
+    # segments = ""
+    segments = []
+    for str in seg_list:
+        segments.append(str)
+    return segments
+
+
+
+
+
 if __name__ == '__main__':
     if 3 != len(sys.argv):
         print("Usage: ", sys.argv[0], "input output")
