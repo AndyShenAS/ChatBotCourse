@@ -38,9 +38,44 @@ from nltk import word_tokenize, sent_tokenize
 # please put the corpus at this path
 # data_path = 'data/output1.bz2'
 # output_path = 'models/model1'
+unique_seqs = {}
 
 question_seqs = []
 answer_seqs = []
+
+# question_path = '../chatbotv5/samples/question.big.segment'
+# answer_path = '../chatbotv5/samples/answer.big.segment'
+question_path = '../chatbotv5/samples/question.big.norepeat.segment'
+answer_path = '../chatbotv5/samples/answer.big.norepeat.segment'
+#一定要预处理，把重复问题去掉，不然loss一直降不下来！！！
+
+def get_train_set():
+    with open(question_path, 'r') as question_file:
+        with open(answer_path, 'r') as answer_file:
+            while True:
+                question_seq = []
+                answer_seq = []
+                question = question_file.readline()
+                answer = answer_file.readline()
+                if question and answer:
+                    line_question = question.strip()
+                    line_answer = answer.strip()
+                    for word in line_question.split(' '):
+                        question_seq.append(word)
+                    for word in line_answer.split(' '):
+                        answer_seq.append(word)
+                else:
+                    break
+                if str(question_seq) not in unique_seqs:
+                    unique_seqs[str(question_seq)] = 1
+                    question_seqs.append(question_seq)
+                    answer_seqs.append(question_seq)
+                if str(answer_seq) not in unique_seqs:
+                    unique_seqs[str(answer_seq)] = 1
+                    question_seqs.append(answer_seq)
+                    answer_seqs.append(answer_seq)
+
+
 
 def init_seq(input_file = './corpus.segment'):
     """读取切好词的文本文件，加载全部词序列
@@ -55,17 +90,21 @@ def init_seq(input_file = './corpus.segment'):
             line = line.strip()
             for word in line.split(' '):
                 question_seq.append(word)
-                answer_seq.append(word)
+
         else:
             break
-        question_seqs.append(question_seq)
-        answer_seqs.append(answer_seq)
+        if str(question_seq) not in unique_seqs:
+            unique_seqs[str(question_seq)] = 1
+            question_seqs.append(question_seq)
+            answer_seqs.append(question_seq)
         # question_seqs.append(answer_seq)
         # answer_seqs.append(answer_seq)
     file_object.close()
 
-#get_train_set()
+get_train_set()
+print('len(unique_seqs):',len(unique_seqs))
 init_seq()
+print('len(unique_seqs):',len(unique_seqs))
 X = question_seqs
 y = answer_seqs
 # for i in range(30):
@@ -148,7 +187,7 @@ load_vectors()
 embeddings_index = word_vector_dict
 
 missing_words = 0
-threshold = 1
+threshold = 10
 # add the words to this string and print
 missing_words_list = []
 
@@ -273,8 +312,8 @@ def unk_counter(sentence):
 
 # parameters for batch parser
 # set the length according to the 90% and 95% quantile
-max_X_length = 50
-max_y_length = 50
+max_X_length = 12
+max_y_length = 12
 min_length = 1
 
 # drop the sample if we got too much unknown words
@@ -325,7 +364,7 @@ learning_rate = 0.001
 learning_rate_decay = 0.95
 min_learning_rate = 0.00005
 epochs = 100
-batch_size = 32
+batch_size = 256
 keep_probability = 0.75
 # 1 - GradientDescentOptimizer
 # 2 - AdamOptimizer
@@ -342,6 +381,10 @@ rnn_dim = 512
 encoder_forget_bias = 1.0
 decoder_forget_bias = 1.0
 
+encoder_type = 1
+# 1 - uni-directional layers  单向层
+# 2 - bidirectional_dynamic_rnn
+
 # 1 - tf.random_uniform_initializer
 # 2 - tf.truncated_normal_initializer
 # 3 - tf.orthogonal_initializer
@@ -350,13 +393,13 @@ initializer_type = 3
 # 1 - Relu
 # 2 - tanh
 activation = None
-num_layers = 1
+num_layers = 2
 
 # Hyperparams for attentions
 # 1 - tf.contrib.seq2seq.BahdanauAttention()
 # 2 - tf.contrib.seq2seq.LuongAttetion()
 # 3 - no attention
-attention_type = 1
+attention_type = 3
 
 # others
 # gradient clipping
@@ -373,7 +416,7 @@ clip_value_min = -3
 clip_value_max = 3
 clip_norm = 5
 
-checkpoint = "./models/autoencoder/best_model.ckpt"
+model_path = "./models/autoencoder/best_model.ckpt"
 logdir = '/tmp/tensorflow/autoencoder_logs/'
 difstr = time.strftime('%Y-%m-%d %H:%M:%S',time.localtime(time.time()))
 logdir += difstr
@@ -397,8 +440,7 @@ def process_decoding_input(target_data, word_to_int, batch_size):
     decoder_input = tf.concat([tf.fill([batch_size, 1], word_to_int['<GO>']), ending], axis=1)
     return decoder_input
 
-def encoding_layer(rnn_dim, sequence_length, num_layers, rnn_inputs, keep_prob):
-
+def get_a_cell(rnn_dim, forget_bias, keep_prob, cell_type):
     # choose the initializer to use in cells
     if initializer_type == 1:
         initializer = tf.random_uniform_initializer(1.0, 1.0, seed=2)
@@ -408,9 +450,9 @@ def encoding_layer(rnn_dim, sequence_length, num_layers, rnn_inputs, keep_prob):
         initializer = tf.orthogonal_initializer(gain=1.0, seed=2)
 
     # choose the cell type to use
-    if encoder_cell_type == 1:
+    if cell_type == 1:
         tf_cell = tf.contrib.rnn.RNNCell(rnn_dim)
-    elif encoder_cell_type == 2:
+    elif cell_type == 2:
         tf_cell = tf.contrib.rnn.GRUCell(rnn_dim,
             kernel_initializer=initializer,
             activation=activation)
@@ -419,40 +461,41 @@ def encoding_layer(rnn_dim, sequence_length, num_layers, rnn_inputs, keep_prob):
             initializer=initializer,
             forget_bias=1.0,
             activation=activation)
+    cell = tf_cell
+    cell = tf.contrib.rnn.DropoutWrapper(cell,
+                        input_keep_prob = keep_prob)
+    return cell
+
+
+def encoding_layer(rnn_dim, sequence_length, num_layers, rnn_inputs, keep_prob):
 
     # multilayered bidirecitonal RNN
     # https://stackoverflow.com/questions/44483560/multilayered-bi-directional-encoder-for-seq2seq-in-tensorflow
     next_inputs = rnn_inputs
     output_list = []
-    for layer in range(num_layers):
-        with tf.variable_scope('encoder_{}'.format(layer)):
-            cell_fw = tf_cell
-            # add dropout wrapper
-            cell_fw = tf.contrib.rnn.DropoutWrapper(cell_fw,
-                                input_keep_prob = keep_prob)
-            cell_bw = tf_cell
-            cell_bw = tf.contrib.rnn.DropoutWrapper(cell_bw,
-                                input_keep_prob = keep_prob)
-
-            # add bidirectional wrapper
-            (encoder_output_fw, encoder_output_bw), encoder_state = tf.nn.bidirectional_dynamic_rnn(cell_fw,
-                                                                    cell_bw,
-                                                                    next_inputs,
-                                                                    sequence_length,
-                                                                    dtype=tf.float32)
-            # update the next_inputs from the output of current layer
-            next_inputs = tf.concat([encoder_output_fw,encoder_output_bw], axis=2)
-            output_list.append(next_inputs)
+    encoder_state_list = []
+    with tf.variable_scope('encoder'):
+        cell_list = []
+        for i in range(num_layers):
+            single_cell = get_a_cell(rnn_dim, 1.0, keep_prob, encoder_cell_type)
+            cell_list.append(single_cell)
+        if len(cell_list) == 1:
+            # Single layer.
+            cell = cell_list[0]
+        else:  # Multi layers
+            cell = tf.contrib.rnn.MultiRNNCell(cell_list)
 
     # only take last one as encoder output
     # encoder_output = next_inputs
     # take all the outputs as encoder output
-    if num_layers == 1:
-        encoder_output = next_inputs
-    else:
-        encoder_output = tf.concat(output_list, axis=2)
+    encoder_output, encoder_state = tf.nn.dynamic_rnn(
+                                     cell,
+                                     next_inputs,
+                                     sequence_length=sequence_length,
+                                     dtype=tf.float32)
 
     return encoder_output, encoder_state
+
 
 # the decoding layer used in training
 def training_decoding_layer(decoder_embed_input, y_length, decoder_cell, initial_state,
@@ -509,57 +552,27 @@ def decoding_layer(decoder_embed_input, embeddings, encoder_output, encoder_stat
                    vocab_size, X_length, y_length, max_y_length, rnn_dim, word_to_int,
                    keep_prob, batch_size, num_layers):
     '''Create the decoding cell and attention for the training and inference decoding layers'''
-    # choose the initializer to use in cells
-    if initializer_type == 1:
-        initializer = tf.random_uniform_initializer(1.0, 1.0, seed=2)
-    elif initializer_type == 2:
-        initializer = tf.truncated_normal_initializer(1.0, 1.0, seed=2)
-    else:
-        initializer = tf.orthogonal_initializer(gain=1.0, seed=2)
-
-    # choose the cell type to use
-    if decoder_cell_type == 1:
-        tf_cell = tf.contrib.rnn.RNNCell(rnn_dim)
-    elif decoder_cell_type == 2:
-        tf_cell = tf.contrib.rnn.GRUCell(rnn_dim,
-            kernel_initializer=initializer,
-            activation=activation)
-    else:
-        tf_cell = tf.contrib.rnn.LSTMCell(rnn_dim,
-            initializer=initializer,
-            forget_bias=1.0,
-            activation=activation)
 
     # create cells for decoder
     # for layer in range(num_layers):
     with tf.variable_scope('decoder'):
-        lstm = tf_cell
-        decoder_cell = tf.contrib.rnn.DropoutWrapper(lstm,
-                                                     input_keep_prob = keep_prob)
+        cell_list = []
+        for i in range(num_layers):
+            single_cell = get_a_cell(rnn_dim, 1.0, keep_prob, decoder_cell_type)
+            cell_list.append(single_cell)
+        if len(cell_list) == 1:
+            # Single layer.
+            decoder_cell = cell_list[0]
+        else:  # Multi layers
+            decoder_cell = tf.contrib.rnn.MultiRNNCell(cell_list)
 
     output_layer = Dense(vocab_size,
                          kernel_initializer = tf.truncated_normal_initializer(mean = 0.0, stddev=0.25))
 
-    # # implements Bahdanau-style (additive) attetion
-    if attention_type == 1:
-        attn_mech = tf.contrib.seq2seq.BahdanauAttention(rnn_dim,
-                                                         encoder_output,
-                                                         X_length,
-                                                         normalize=False,
-                                                         name='BahdanauAttention')
-    else:
-        #implements Luong-style(multiplication) attention
-        attn_mech = tf.contrib.seq2seq.LuongAttention(rnn_dim,
-                                                      encoder_output,
-                                                      X_length,
-                                                      name='LuongAttention')
-    # Wraps RNNCells with attention
-    decoder_cell = tf.contrib.seq2seq.AttentionWrapper(decoder_cell,
-                                                       attn_mech,
-                                                       rnn_dim)
 
     # initial_cell_state = the ending state of encoder
-    initial_state = decoder_cell.zero_state(batch_size, tf.float32).clone(cell_state=encoder_state[0])
+    # initial_state = decoder_cell.zero_state(batch_size, tf.float32).clone(cell_state=encoder_state[0])
+    initial_state = encoder_state
 
     with tf.variable_scope("decode"):
         #这里是用来看embedding来源的，只是个注释
@@ -620,7 +633,7 @@ def seq2seq_model(input_data, target_data, keep_prob, X_length, y_length, max_y_
                                                         batch_size,
                                                         num_layers)
 
-    return training_logits, inference_logits
+    return training_logits, inference_logits, encoder_state
 
 def pad_sentence_batch(sentences):
     max_sentence = max([len(sentence) for sentence in sentences])
@@ -767,7 +780,7 @@ def model_build():
     #                                                   word_to_int,
     #                                                   batch_size)
 
-    training_logits, inference_logits = seq2seq_model(input_data,
+    training_logits, inference_logits, encoder_state = seq2seq_model(input_data,
                                                       targets,
                                                       keep_prob,
                                                       X_length,
@@ -781,6 +794,7 @@ def model_build():
 
     training_logits = tf.identity(training_logits.rnn_output, name='logits')
     inference_logits = tf.identity(inference_logits.sample_id, name='predictions')
+    encoder_state = tf.identity(encoder_state, name='encoder_state')
 
     # Create the weights for sequence_loss
     masks = tf.sequence_mask(y_length, max_y_length, dtype=tf.float32, name='mask')
@@ -835,7 +849,7 @@ def train():
     display_step = 20 # Check training loss after every 20 batches
     stop_early = 0
     # If the update loss does not decrease in num_to_stop consecutive update checks, stop training
-    num_to_stop = 10
+    num_to_stop = 7
 
     per_epoch = 3
 
@@ -920,7 +934,7 @@ def train():
                         stop_early += 1
                         if stop_early == num_to_stop:
                             break
-                        if stop_early == num_to_stop - 2:
+                        if stop_early % 5 == 0:
                             # Reduce learning rate, but not below its minimum value
                             learning_rate *= learning_rate_decay
                             if learning_rate < min_learning_rate:
@@ -960,8 +974,10 @@ def predict():
     # Create your own review or use one from the dataset
     # input_sentence = "Do you like Joshua?"
     input_sentence = "世界上最美的人是谁"
+    # Response Words: 全世界 最好 的 作者 是 谁 <EOS>
     # input_sentence = "我好想你啊"
-    # input_sentence = "无聊啊，找事做啊"
+    # input_sentence = "你是屌丝鸡"
+    # Response Words: 你 屌丝 鸡 <EOS>
 
     text = text_to_seq(input_sentence)
     # random = np.random.randint(0,len(clean_texts))
@@ -1004,9 +1020,9 @@ def predict():
     print(('  Word Ids:       {}'.format([i for i in answer_logits])))
     print(('  Response Words: {}'.format(" ".join([int_to_word[i] for i in answer_logits]))))
 
-    print('\nSummary2')
-    print(('  Word Ids:       {}'.format([answer_logits[i] for i in range(len(answer_logits)) if i != pad and answer_logits[i] != answer_logits[i-1]])))
-    print(('  Response Words: {}'.format(" ".join([int_to_word[answer_logits[i]] for i in range(len(answer_logits)) if i != pad and answer_logits[i] != answer_logits[i-1]]))))
+    # print('\nSummary2')
+    # print(('  Word Ids:       {}'.format([answer_logits[i] for i in range(len(answer_logits)) if i != pad and answer_logits[i] != answer_logits[i-1]])))
+    # print(('  Response Words: {}'.format(" ".join([int_to_word[answer_logits[i]] for i in range(len(answer_logits)) if i != pad and answer_logits[i] != answer_logits[i-1]]))))
 
 
 ##################################################################################

@@ -704,6 +704,76 @@ def get_random_batches(summaries, texts, batch_size):
 
         yield pad_summaries_batch, pad_texts_batch, pad_summaries_lengths, pad_texts_lengths
 
+def get_real_random_batches(summaries, texts, batch_size):
+    """Batch summaries, texts, and the lengths of their sentences together"""
+    for batch_i in range(0, len(texts)//batch_size+1):
+        random_index = [random.randint(0, len(texts)) for i in range(batch_size)]
+        summaries_batch = [summaries[i] for i in random_index]
+        texts_batch = [texts[i] for i in random_index]
+        pad_summaries_batch = np.array(pad_sentence_batch(summaries_batch))
+        pad_texts_batch = np.array(reverse_sentence_batch(pad_sentence_batch(texts_batch)))
+
+        # Need the lengths for the _lengths parameters
+        pad_summaries_lengths = []
+        for summary in pad_summaries_batch:
+            pad_summaries_lengths.append(len(summary))
+
+        pad_texts_lengths = []
+        for text in pad_texts_batch:
+            pad_texts_lengths.append(len(text))
+
+        yield pad_summaries_batch, pad_texts_batch, pad_summaries_lengths, pad_texts_lengths
+
+# for batch_i in range(0, len(texts)//batch_size):
+# 改成：
+# for batch_i in range(0, len(texts)//batch_size+1):
+# >>> a = range(0,156)
+# >>> a
+# range(0, 156)
+# >>> a = [i for i in range(0,156)]
+# >>> a
+# [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 134, 135, 136, 137, 138, 139, 140, 141, 142, 143, 144, 145, 146, 147, 148, 149, 150, 151, 152, 153, 154, 155]
+# >>> for batch_i in range(0,len(a)//10):
+# ...     start_i = batch_i*10
+# ...     print(a[start_i:start_i+10])
+# ...
+# [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+# [10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
+# [20, 21, 22, 23, 24, 25, 26, 27, 28, 29]
+# [30, 31, 32, 33, 34, 35, 36, 37, 38, 39]
+# [40, 41, 42, 43, 44, 45, 46, 47, 48, 49]
+# [50, 51, 52, 53, 54, 55, 56, 57, 58, 59]
+# [60, 61, 62, 63, 64, 65, 66, 67, 68, 69]
+# [70, 71, 72, 73, 74, 75, 76, 77, 78, 79]
+# [80, 81, 82, 83, 84, 85, 86, 87, 88, 89]
+# [90, 91, 92, 93, 94, 95, 96, 97, 98, 99]
+# [100, 101, 102, 103, 104, 105, 106, 107, 108, 109]
+# [110, 111, 112, 113, 114, 115, 116, 117, 118, 119]
+# [120, 121, 122, 123, 124, 125, 126, 127, 128, 129]
+# [130, 131, 132, 133, 134, 135, 136, 137, 138, 139]
+# [140, 141, 142, 143, 144, 145, 146, 147, 148, 149]
+# >>> for batch_i in range(0,len(a)//10+1):
+# ...     start_i = batch_i*10
+# ...     print(a[start_i:start_i+10])
+# ...
+# [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+# [10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
+# [20, 21, 22, 23, 24, 25, 26, 27, 28, 29]
+# [30, 31, 32, 33, 34, 35, 36, 37, 38, 39]
+# [40, 41, 42, 43, 44, 45, 46, 47, 48, 49]
+# [50, 51, 52, 53, 54, 55, 56, 57, 58, 59]
+# [60, 61, 62, 63, 64, 65, 66, 67, 68, 69]
+# [70, 71, 72, 73, 74, 75, 76, 77, 78, 79]
+# [80, 81, 82, 83, 84, 85, 86, 87, 88, 89]
+# [90, 91, 92, 93, 94, 95, 96, 97, 98, 99]
+# [100, 101, 102, 103, 104, 105, 106, 107, 108, 109]
+# [110, 111, 112, 113, 114, 115, 116, 117, 118, 119]
+# [120, 121, 122, 123, 124, 125, 126, 127, 128, 129]
+# [130, 131, 132, 133, 134, 135, 136, 137, 138, 139]
+# [140, 141, 142, 143, 144, 145, 146, 147, 148, 149]
+# [150, 151, 152, 153, 154, 155]
+
+
 ### Building the graph ###
 print("Building the model")
 
@@ -863,7 +933,7 @@ def train():
                     batch_loss = 0
 
                 if batch_i % update_check == 0 and batch_i > 0:
-                    print(("Average loss for this update:", round(update_loss/update_check,3)))
+                    print(("Average loss for this update:", round(update_loss/update_check,3)),"lr:",learning_rate)
                     y_update_loss.append(update_loss)
 
                     # If the update loss is at a new minimum, save the model
