@@ -354,7 +354,7 @@ learning_rate = 0.001
 learning_rate_decay = 0.95
 min_learning_rate = 0.00005
 epochs = 100
-batch_size = 128
+batch_size = 256
 keep_probability = 0.75
 # 1 - GradientDescentOptimizer
 # 2 - AdamOptimizer
@@ -850,8 +850,12 @@ def train():
     # writer.add_graph(sess.graph)
 
     # cut the dataset to training set
-    start = 200000
-    end = start + 64552
+    # start = 200000
+    # end = start + 64552
+    # start = 0
+    # end = 200000
+    start = 0
+    end = start + 264552
     #算上1999条小数据集对话
     # number of sorted input 266457
     # number of sorted output 266457
@@ -872,7 +876,7 @@ def train():
     display_step = 20 # Check training loss after every 20 batches
     stop_early = 0
     # If the update loss does not decrease in num_to_stop consecutive update checks, stop training
-    num_to_stop = 10
+    num_to_stop = 151
 
     per_epoch = 3
 
@@ -957,7 +961,7 @@ def train():
                         stop_early += 1
                         if stop_early == num_to_stop:
                             break
-                        if stop_early == num_to_stop - 2:
+                        if stop_early % 5 == 0:
                             # Reduce learning rate, but not below its minimum value
                             learning_rate *= learning_rate_decay
                             if learning_rate < min_learning_rate:
@@ -978,6 +982,7 @@ def text_to_seq(text):
 
     # text = clean_text(text)
     temp_list = [word_to_int.get(word, word_to_int['<UNK>']) for word in segment_text(text)]
+    # return list(reversed(temp_list+[word_to_int['<PAD>']]))
     return list(reversed(temp_list))
 
 # >>> a={"a":1,"b":2}
@@ -996,8 +1001,49 @@ def predict():
     # Create your own review or use one from the dataset
     # input_sentence = "Do you like Joshua?"
     input_sentence = "世界上最美的人是谁"
+    # Response Words: 是 世界 上 最 忠诚 的 人 <EOS>
+    # Response Words: 小通 啊 ， 必须 的 ， 远在天边 ， 近在眼前 ！ <EOS>
     # input_sentence = "我好想你啊"
+    # Response Words: 会 分手 <EOS>
     # input_sentence = "无聊啊，找事做啊"
+    # Response Words: 就是 每天 重复 <EOS>
+    # input_sentence = "你是谁啊"
+    # Response Words: 我 是 你 我 的 [ robot _ name ] 机器人 <EOS>
+
+    # input_sentence = "我好困怎么办"
+    # Response Words: 好困 吧 ， 睡醒 就 休息 了 呢 … … <EOS>
+    # Response Words: 好困 ， 休息 ， 陪 你们 聊天 吧 <EOS>
+    # input_sentence = "我想出去玩"
+    # Response Words: 屌丝 不哭 ， 站 起来 撸 <EOS>
+    # Response Words: 出去 玩 啊 <EOS>
+    # input_sentence = "你有男朋友没"
+    # Response Words: 你 觉得 呢 <EOS>
+    # Response Words: 你 觉得 呢 <EOS>
+    # input_sentence = "谢谢么么睡觉吧爱你"
+    # Response Words: 害羞 <EOS>
+    # Response Words: = 。 = <EOS>
+    # input_sentence = "然后炖了你"
+    # Response Words: 人家 脱毛 以后 会 害羞 的 <EOS>
+    # input_sentence = "我要炖了你"
+    # Response Words: 主人 手下留情 啊 … … <EOS>
+    # Response Words: 斯溜 … … 斯溜 <EOS>
+    # input_sentence = "你家在哪里呢"
+    # Response Words: 在 你 深深 的 脑海 里 呢 <EOS>
+    # Response Words: 在 这里 呢 <EOS>
+    # input_sentence = "你知道东京在哪吗"
+    # Response Words: = 。 = <EOS>
+    # Response Words: dxfhj ， 没 问题 。 <EOS>
+    # input_sentence = "你寂寞无聊时会干什么"
+    # Response Words: 主人 ， 我 陪 我 聊天 <EOS>
+    # Response Words: 我 是 小 公主 ， 我 是 只 程序 的 <EOS>
+
+
+
+
+
+
+
+
 
     text = text_to_seq(input_sentence)
     # random = np.random.randint(0,len(clean_texts))
@@ -1005,7 +1051,7 @@ def predict():
     # text = text_to_seq(clean_texts[random])
 
     # model_path = "./models/best_model"
-    # model_path = "./best_model/models/best_model"
+    # model_path = "./best_model/best_bigcorpus/bigcorpus"
 
     loaded_graph = tf.Graph()
     with tf.Session(graph=loaded_graph) as sess:
@@ -1040,14 +1086,14 @@ def predict():
     print(('  Word Ids:       {}'.format([i for i in answer_logits])))
     print(('  Response Words: {}'.format(" ".join([int_to_word[i] for i in answer_logits]))))
 
-    print('\nSummary2')
-    print(('  Word Ids:       {}'.format([answer_logits[i] for i in range(len(answer_logits)) if i != pad and answer_logits[i] != answer_logits[i-1]])))
-    print(('  Response Words: {}'.format(" ".join([int_to_word[answer_logits[i]] for i in range(len(answer_logits)) if i != pad and answer_logits[i] != answer_logits[i-1]]))))
+    # print('\nSummary2')
+    # print(('  Word Ids:       {}'.format([answer_logits[i] for i in range(len(answer_logits)) if i != pad and answer_logits[i] != answer_logits[i-1]])))
+    # print(('  Response Words: {}'.format(" ".join([int_to_word[answer_logits[i]] for i in range(len(answer_logits)) if i != pad and answer_logits[i] != answer_logits[i-1]]))))
 
 
 ##################################################################################
 
-train()
+# train()
 
 predict()
 ########################################################
