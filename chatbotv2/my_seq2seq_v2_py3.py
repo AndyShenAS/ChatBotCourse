@@ -11,6 +11,7 @@ import numpy as np
 import struct
 sys.path.append('../')
 from word_segment_py3 import segment
+np.set_printoptions(threshold=np.NaN)
 
 question_seqs = []
 answer_seqs = []
@@ -19,7 +20,7 @@ max_w = 50
 float_size = 4
 word_vector_dict = {}
 word_vec_dim = 200
-max_seq_len = 8
+max_seq_len = 10
 word_set = {}
 
 def load_word_set():
@@ -158,20 +159,22 @@ class MySeq2Seq(object):
 
     def generate_trainig_data(self):
         load_word_set()
-        load_vectors("./vectors.bin")
+        load_vectors("../corpus/data/vectors.bin")
         init_seq(self.input_file)    #这里产生问答向量列表
         xy_data = []
         y_data = []
+        count = 0
         for i in range(len(question_seqs)):
         #for i in range(100):
             question_seq = question_seqs[i]
             answer_seq = answer_seqs[i]
             if len(question_seq) < self.max_seq_len and len(answer_seq) < self.max_seq_len:
-                # sequence_xy = [np.zeros(self.word_vec_dim)] * (self.max_seq_len-len(question_seq)) + list(reversed(question_seq))
-                sequence_xy = [np.zeros(self.word_vec_dim)] * (self.max_seq_len-len(question_seq)) + question_seq
+                sequence_xy = [np.zeros(self.word_vec_dim)] * (self.max_seq_len-len(question_seq)) + list(reversed(question_seq))
+                # sequence_xy = [np.zeros(self.word_vec_dim)] * (self.max_seq_len-len(question_seq)) + question_seq
                 sequence_y = answer_seq + [np.zeros(self.word_vec_dim)] * (self.max_seq_len-len(answer_seq))
-                sequence_xy = sequence_xy + sequence_y
-                sequence_y = [np.ones(self.word_vec_dim)] + sequence_y
+                sequence_xy = sequence_xy + [np.ones(self.word_vec_dim)] + sequence_y
+                # sequence_xy = sequence_xy + sequence_y
+                sequence_y = sequence_y + [np.zeros(self.word_vec_dim)]
                 xy_data.append(sequence_xy)
                 y_data.append(sequence_y)
 
@@ -181,27 +184,32 @@ class MySeq2Seq(object):
                 #    (match_word, max_cos) = vector2word(w)
                 #    if len(match_word)>0:
                 #        print match_word, vector_sqrtlen(w)
+            else:
+                print("over length......len(question_seq):",len(question_seq),"len(answer_seq):",len(answer_seq))
+                count += 1
+        print("over length count....",count)
 
 
-        return 10*np.array(xy_data), 10*np.array(y_data)
+        return np.array(xy_data), np.array(y_data)
 
 
     def model(self, feed_previous=False):
         # 通过输入的XY生成encoder_inputs和带GO头的decoder_inputs
         #smyshape的第一个参数none是batch size
-        input_data = tflearn.input_data(shape=[None, self.max_seq_len*2, self.word_vec_dim], dtype=tf.float32, name = "XY")
+        input_data = tflearn.input_data(shape=[None, self.max_seq_len*2+1, self.word_vec_dim], dtype=tf.float32, name = "XY")
         encoder_inputs = tf.slice(input_data, [0, 0, 0], [-1, self.max_seq_len, self.word_vec_dim], name="enc_in")
         # decoder_inputs_tmp = tf.slice(input_data, [0, self.max_seq_len, 0], [-1, self.max_seq_len-1, self.word_vec_dim], name="dec_in_tmp")
-        decoder_inputs_tmp = tf.slice(input_data, [0, self.max_seq_len, 0], [-1, self.max_seq_len-1, self.word_vec_dim], name="dec_in_tmp")
-        go_inputs = 10*tf.ones_like(decoder_inputs_tmp)
-        go_inputs = tf.slice(go_inputs, [0, 0, 0], [-1, 1, self.word_vec_dim])
-        decoder_inputs = tf.concat([go_inputs, decoder_inputs_tmp], 1, name="dec_in")
+        decoder_inputs = tf.slice(input_data, [0, self.max_seq_len, 0], [-1, self.max_seq_len+1, self.word_vec_dim], name="dec_in")
+        # go_inputs = tf.ones_like(decoder_inputs_tmp)
+        # go_inputs = tf.slice(go_inputs, [0, 0, 0], [-1, 1, self.word_vec_dim])
+        # decoder_inputs = tf.concat([go_inputs, decoder_inputs_tmp], 1, name="dec_in")
         #加入Go头
 
         # 编码器
         # 把encoder_inputs交给编码器，返回一个输出(预测序列的第一个值)和一个状态(传给解码器)
         (encoder_output_tensor, states) = tflearn.lstm(encoder_inputs, self.word_vec_dim, return_state=True, scope='encoder_lstm')
-        encoder_output_sequence = tf.stack([encoder_output_tensor], axis=1)
+        #下面这句没用
+        encoder_output_sequence = tf.stack([encoder_output_tensor], axis=1, name = "enc_out" )
         # with tf.Session() as sess:
         #     print(sess.run(encoder_output_sequence))
 
@@ -209,30 +217,30 @@ class MySeq2Seq(object):
         # 预测过程用前一个时间序的输出作为下一个时间序的输入
         # 先用编码器的最后一个输出作为第一个输入
         # feed_previous为true，用来生成回复。否则是训练
-        if feed_previous:
-            first_dec_input = go_inputs
-        else:
-            first_dec_input = tf.slice(decoder_inputs, [0, 0, 0], [-1, 1, self.word_vec_dim])
-        decoder_output_tensor = tflearn.lstm(first_dec_input, self.word_vec_dim, initial_state=states, return_seq=False, reuse=False, scope='decoder_lstm')
+        first_dec_input = tf.slice(decoder_inputs, [0, 0, 0], [-1, 1, self.word_vec_dim])
+        (decoder_output_tensor, states) = tflearn.lstm(first_dec_input, self.word_vec_dim, initial_state=states, return_state=True, return_seq=False, reuse=False, scope='decoder_lstm')
         decoder_output_sequence_single = tf.stack([decoder_output_tensor], axis=1)
         decoder_output_sequence_list = [decoder_output_tensor]
         # 再用解码器的输出作为下一个时序的输入
-        for i in range(self.max_seq_len-1):
+        for i in range(self.max_seq_len):
             if feed_previous:
                 next_dec_input = decoder_output_sequence_single
             else:
                 next_dec_input = tf.slice(decoder_inputs, [0, i+1, 0], [-1, 1, self.word_vec_dim])
-            decoder_output_tensor = tflearn.lstm(next_dec_input, self.word_vec_dim, return_seq=False, reuse=True, scope='decoder_lstm')
+            (decoder_output_tensor, states) = tflearn.lstm(next_dec_input, self.word_vec_dim, initial_state=states, return_state=True, return_seq=False, reuse=True, scope='decoder_lstm')
             decoder_output_sequence_single = tf.stack([decoder_output_tensor], axis=1)
             decoder_output_sequence_list.append(decoder_output_tensor)
 
         decoder_output_sequence = tf.stack(decoder_output_sequence_list, axis=1)
 
-        real_output_sequence = tf.concat([encoder_output_sequence, decoder_output_sequence],1)
+        # real_output_sequence = tf.concat([encoder_output_sequence, decoder_output_sequence],1)
+        real_output_sequence = decoder_output_sequence
         # smy 把concat中参数1从前面换到后面
         print('real_output_sequence:',real_output_sequence.get_shape())
 
-        net = tflearn.regression(real_output_sequence, optimizer='sgd', learning_rate=1.0, loss='mean_square')
+        # net = tflearn.regression(real_output_sequence, optimizer='sgd', learning_rate=100, loss='mean_square')
+        net = tflearn.regression(real_output_sequence, optimizer='adam', learning_rate=1.0, loss='my_mean_square')
+        # net = tflearn.regression(real_output_sequence, optimizer='adam', learning_rate=1.0, loss='mean_square')
         # net = tflearn.regression(real_output_sequence, optimizer='sgd', learning_rate=0.1, loss='categorical_crossentropy')
         model = tflearn.DNN(net)
         return model
@@ -241,8 +249,11 @@ class MySeq2Seq(object):
         trainXY, trainY = self.generate_trainig_data()
         print('trainXY:',trainXY.shape)
         print('trainY:',trainY.shape)
+        # print(trainXY[:1])
+        # print(trainY[:1])
         model = self.model(feed_previous=False)
-        model.fit(trainXY, trainY, n_epoch=10, snapshot_epoch=False, batch_size=1)
+        # model.load('./model/model')
+        model.fit(trainXY, trainY, n_epoch=1000, snapshot_epoch=False, batch_size=1000)
         model.save('./model/model')
         return model
 
@@ -278,13 +289,17 @@ if __name__ == '__main__':
     else:
         model = my_seq2seq.load()
         trainXY, trainY = my_seq2seq.generate_trainig_data()
-        # np.set_printoptions(threshold=np.NaN)
-        # print(trainXY)
-        # print(trainY)
+
+        # print(trainXY[:1])
+        # print(trainY[:1])
         predict = model.predict(trainXY)
+        # predict /= 1000
+        print("predict .........")
+        # print(predict)
         for sample in predict:
             print("predict answer")
-            for w in sample[1:]:
+            # for w in sample[1:]:
+            for w in sample:
                 (match_word, max_cos) = vector2word(w)
                 #if vector_sqrtlen(w) < 1:
                 #    break
