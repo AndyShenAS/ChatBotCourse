@@ -978,6 +978,7 @@ def text_to_seq(text):
 
     # text = clean_text(text)
     temp_list = [word_to_int.get(word, word_to_int['<UNK>']) for word in segment_text(text)]
+    # return list(reversed(temp_list+[word_to_int['<PAD>']]))
     return list(reversed(temp_list))
 
 # >>> a={"a":1,"b":2}
