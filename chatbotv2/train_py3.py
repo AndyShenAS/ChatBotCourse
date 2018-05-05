@@ -853,28 +853,28 @@ def train():
                 # print("batch_i:",batch_i,"loss:",loss)
 
                 if batch_i % display_step == 0 and batch_i > 0:
-                    # print(('Epoch {:>3}/{} Batch {:>4}/{} - Loss: {:>6.3f}, Seconds: {:>4.2f}'
-                    #       .format(epoch_i,
-                    #               epochs,
-                    #               batch_i,
-                    #               len(sorted_X_short) // batch_size,
-                    #               batch_loss / display_step,
-                    #               batch_time*display_step)))
+                    print(('Epoch {:>3}/{} Batch {:>4}/{} - Loss: {:>6.3f}, Seconds: {:>4.2f}'
+                          .format(epoch_i,
+                                  epochs,
+                                  batch_i,
+                                  len(sorted_X_short) // batch_size,
+                                  batch_loss / display_step,
+                                  batch_time*display_step)))
                     batch_loss = 0
 
                 if batch_i % update_check == 0 and batch_i > 0:
-                    # print(("Average loss for this update:", round(update_loss/update_check,3)))
+                    print(("Average loss for this update:", round(update_loss/update_check,3)))
                     y_update_loss.append(update_loss)
 
                     # If the update loss is at a new minimum, save the model
                     if update_loss <= min(y_update_loss):
-                        # print('New Record!')
+                        print('New Record!')
                         stop_early = 0
                         saver = tf.train.Saver()
                         saver.save(sess, model_path)
 
                     else:
-                        # print("No Improvement.")
+                        print("No Improvement.")
                         stop_early += 1
                         if stop_early == num_to_stop:
                             break
@@ -889,7 +889,7 @@ def train():
 
 
             if stop_early == num_to_stop:
-                # print("Stopping Training.")
+                print("Stopping Training.")
                 break
 
 
@@ -969,12 +969,12 @@ def predict():
 
 ##################################################################################
 
-# train()
-# predict()
+train()
+predict()
 ########################################################
-for i in range(20):
-    train()
-    predict()
+# for i in range(20):
+#     train()
+#     predict()
 
 
 
