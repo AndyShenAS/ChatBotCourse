@@ -199,10 +199,17 @@ class MySeq2Seq(object):
         input_data = tflearn.input_data(shape=[None, self.max_seq_len*2+1, self.word_vec_dim], dtype=tf.float32, name = "XY")
         encoder_inputs = tf.slice(input_data, [0, 0, 0], [-1, self.max_seq_len, self.word_vec_dim], name="enc_in")
         # decoder_inputs_tmp = tf.slice(input_data, [0, self.max_seq_len, 0], [-1, self.max_seq_len-1, self.word_vec_dim], name="dec_in_tmp")
+<<<<<<< HEAD
         decoder_inputs = tf.slice(input_data, [0, self.max_seq_len, 0], [-1, self.max_seq_len+1, self.word_vec_dim], name="dec_in")
         # go_inputs = tf.ones_like(decoder_inputs_tmp)
         # go_inputs = tf.slice(go_inputs, [0, 0, 0], [-1, 1, self.word_vec_dim])
         # decoder_inputs = tf.concat([go_inputs, decoder_inputs_tmp], 1, name="dec_in")
+=======
+        decoder_inputs_tmp = tf.slice(input_data, [0, self.max_seq_len, 0], [-1, self.max_seq_len-1, self.word_vec_dim], name="dec_in_tmp")
+        go_inputs = tf.ones_like(decoder_inputs_tmp)
+        go_inputs = tf.slice(go_inputs, [0, 0, 0], [-1, 1, self.word_vec_dim])
+        decoder_inputs = tf.concat([go_inputs, decoder_inputs_tmp], 1, name="dec_in")
+>>>>>>> b113b3e4764b66dce58a8a4d18b970c715682c4f
         #加入Go头
 
         # 编码器
@@ -252,8 +259,13 @@ class MySeq2Seq(object):
         # print(trainXY[:1])
         # print(trainY[:1])
         model = self.model(feed_previous=False)
+<<<<<<< HEAD
         # model.load('./model/model')
         model.fit(trainXY, trainY, n_epoch=1000, snapshot_epoch=False, batch_size=1000)
+=======
+        model.load('./model/model')
+        model.fit(trainXY, trainY, n_epoch=10, snapshot_epoch=False, batch_size=1)
+>>>>>>> b113b3e4764b66dce58a8a4d18b970c715682c4f
         model.save('./model/model')
         return model
 
@@ -289,7 +301,11 @@ if __name__ == '__main__':
     else:
         model = my_seq2seq.load()
         trainXY, trainY = my_seq2seq.generate_trainig_data()
+<<<<<<< HEAD
 
+=======
+        np.set_printoptions(threshold=np.NaN)
+>>>>>>> b113b3e4764b66dce58a8a4d18b970c715682c4f
         # print(trainXY[:1])
         # print(trainY[:1])
         predict = model.predict(trainXY)

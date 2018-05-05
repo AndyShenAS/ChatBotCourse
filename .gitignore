@@ -12,4 +12,7 @@ chatbotv5/model/bigcorpus
 corpus/data/
 chatbotv2/*.pkl
 chatbotv2/models/
+<<<<<<< HEAD
 chatbotv2/best_model/models/
+=======
+>>>>>>> b113b3e4764b66dce58a8a4d18b970c715682c4f
