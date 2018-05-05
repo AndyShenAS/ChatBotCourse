@@ -101,11 +101,7 @@ def init_seq(input_file = './corpus.segment'):
         # answer_seqs.append(answer_seq)
     file_object.close()
 
-<<<<<<< HEAD
 # get_train_set()
-=======
-get_train_set()
->>>>>>> d1732bb05e16a8c3e9bb07b86a3f021b6dbf081f
 print('len(unique_seqs):',len(unique_seqs))
 init_seq()
 print('len(unique_seqs):',len(unique_seqs))
@@ -826,11 +822,7 @@ def model_build():
         ###################################
     merged_summary_op = tf.summary.merge_all()
     saver = tf.train.Saver(tf.global_variables())
-<<<<<<< HEAD
     return training_logits, inference_logits, train_op, cost, merged_summary_op, input_data, targets, lr, y_length, X_length, keep_prob, saver, encoder_state
-=======
-    return training_logits, inference_logits, train_op, cost, merged_summary_op, input_data, targets, lr, y_length, X_length, keep_prob, saver
->>>>>>> d1732bb05e16a8c3e9bb07b86a3f021b6dbf081f
 
 
 
@@ -876,11 +868,7 @@ def train():
     train_graph = tf.Graph()
     with tf.Session(graph=train_graph) as sess:
     # with tf.Session() as sess:
-<<<<<<< HEAD
         training_logits, inference_logits, train_op, cost, merged_summary_op, input_data, targets, lr, y_length, X_length, keep_prob, saver, encoder_state = model_build()
-=======
-        training_logits, inference_logits, train_op, cost, merged_summary_op, input_data, targets, lr, y_length, X_length, keep_prob, saver = model_build()
->>>>>>> d1732bb05e16a8c3e9bb07b86a3f021b6dbf081f
 
         sess.run(tf.global_variables_initializer())
         # saver.restore(sess, model_path)   #换这句可以接着上次的训练
@@ -1002,11 +990,7 @@ def predict():
     loaded_graph = tf.Graph()
     with tf.Session(graph=loaded_graph) as sess:
     # with tf.Session() as sess:
-<<<<<<< HEAD
         training_logits, inference_logits, train_op, cost, merged_summary_op, input_data, targets, lr, y_length, X_length, keep_prob, saver, encoder_state = model_build()
-=======
-        training_logits, inference_logits, train_op, cost, merged_summary_op, input_data, targets, lr, y_length, X_length, keep_prob, saver = model_build()
->>>>>>> d1732bb05e16a8c3e9bb07b86a3f021b6dbf081f
         # Load saved model
         saver.restore(sess, model_path)
 
@@ -1014,11 +998,7 @@ def predict():
 
 
         #Multiply by batch_size to match the model's input parameters
-<<<<<<< HEAD
         answer_logits, auto_encoder = sess.run([inference_logits, encoder_state], {input_data: [text]*batch_size,
-=======
-        answer_logits = sess.run(inference_logits, {input_data: [text]*batch_size,
->>>>>>> d1732bb05e16a8c3e9bb07b86a3f021b6dbf081f
                                           y_length: [np.random.randint(35,40)],
                                           X_length: [len(text)]*batch_size,
                                           keep_prob: 1.0})[0]
