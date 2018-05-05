@@ -8,6 +8,7 @@ import os
 from bz2 import BZ2File
 from io import open
 from collections import Counter
+import random
 
 import sys
 import math
@@ -19,6 +20,7 @@ import chardet
 import struct
 sys.path.append('../')
 from word_segment_py3 import segment,segment_text
+import jieba
 
 import tensorflow as tf
 from tensorflow.python.layers.core import Dense
@@ -39,6 +41,32 @@ from nltk import word_tokenize, sent_tokenize
 
 question_seqs = []
 answer_seqs = []
+
+# question_path = '../chatbotv5/samples/question.big.segment'
+# answer_path = '../chatbotv5/samples/answer.big.segment'
+question_path = '../chatbotv5/samples/question.big.norepeat.segment'
+answer_path = '../chatbotv5/samples/answer.big.norepeat.segment'
+#一定要预处理，把重复问题去掉，不然loss一直降不下来！！！
+
+def get_train_set():
+    with open(question_path, 'r') as question_file:
+        with open(answer_path, 'r') as answer_file:
+            while True:
+                question_seq = []
+                answer_seq = []
+                question = question_file.readline()
+                answer = answer_file.readline()
+                if question and answer:
+                    line_question = question.strip()
+                    line_answer = answer.strip()
+                    for word in line_question.split(' '):
+                        question_seq.append(word)
+                    for word in line_answer.split(' '):
+                        answer_seq.append(word)
+                else:
+                    break
+                question_seqs.append(question_seq)
+                answer_seqs.append(answer_seq)
 
 def init_seq(input_file = './corpus.segment.pair'):
     """读取切好词的文本文件，加载全部词序列
@@ -65,6 +93,7 @@ def init_seq(input_file = './corpus.segment.pair'):
         answer_seqs.append(answer_seq)
     file_object.close()
 
+#get_train_set()
 init_seq()
 X = question_seqs
 y = answer_seqs
@@ -148,7 +177,7 @@ load_vectors()
 embeddings_index = word_vector_dict
 
 missing_words = 0
-# threshold = 5
+threshold = 1
 # add the words to this string and print
 missing_words_list = []
 
@@ -162,7 +191,7 @@ missing_ratio = round(missing_words/len(word_counts), 4)*100
 print("number of missing words: ", missing_words)
 print("missing_ratio: ",missing_ratio)
 # to see what words not covered by our word embeddings
-print([word + ": " + str(word_counts[word]) for word in missing_words_list])
+print([word + ": " + str(word_counts[word]) for word in missing_words_list[0:100]])
 
 ### word to int
 word_to_int = {}
@@ -174,7 +203,7 @@ for code in special_codes:
 
 value = len(word_to_int)
 for word, count in word_counts.items():
-    if word in embeddings_index:
+    if count >= threshold and word in embeddings_index:
         word_to_int[word] = value
         value += 1
 
@@ -227,8 +256,10 @@ def convert_to_ints(text, n_words, n_unk, eos=False):
 n_words = 0
 n_unk = 0
 
-int_y, n_words, n_unk = convert_to_ints(y_clean, n_words, n_unk)
-int_X, n_words, n_unk = convert_to_ints(X_clean, n_words, n_unk, eos=True)
+# int_y, n_words, n_unk = convert_to_ints(y_clean, n_words, n_unk)
+# int_X, n_words, n_unk = convert_to_ints(X_clean, n_words, n_unk, eos=True)
+int_y, n_words, n_unk = convert_to_ints(y_clean, n_words, n_unk, eos=True)
+int_X, n_words, n_unk = convert_to_ints(X_clean, n_words, n_unk)
 
 unk_percent = round(1.0 * n_unk / n_words, 4) * 100
 
@@ -370,7 +401,11 @@ clip_value_min = -3
 clip_value_max = 3
 clip_norm = 5
 
-log_dir = '/tmp/tensorflow/my_seq2seq_logs'
+model_path = "./models/best_model.ckpt"
+logdir = '/tmp/tensorflow/my_seq2seq_logs/'
+difstr = time.strftime('%Y-%m-%d %H:%M:%S',time.localtime(time.time()))
+logdir += difstr
+# tensorboard --logdir=/tmp/tensorflow/my_seq2seq_logs/ --port=6006
 
 def model_inputs():
 
@@ -555,6 +590,9 @@ def decoding_layer(decoder_embed_input, embeddings, encoder_output, encoder_stat
     initial_state = decoder_cell.zero_state(batch_size, tf.float32).clone(cell_state=encoder_state[0])
 
     with tf.variable_scope("decode"):
+        #这里是用来看embedding来源的，只是个注释
+        #embeddings = word_embedding_matrix
+        #decoder_embed_input = tf.nn.embedding_lookup(embeddings, decoder_input)
         training_logits = training_decoding_layer(decoder_embed_input,
                                                   y_length,
                                                   decoder_cell,
@@ -624,10 +662,34 @@ def reverse_sentence_batch(sentences):
 
 def get_batches(summaries, texts, batch_size):
     """Batch summaries, texts, and the lengths of their sentences together"""
-    for batch_i in range(0, len(texts)//batch_size):
+    for batch_i in range(0, len(texts)//batch_size+1):
         start_i = batch_i * batch_size
-        summaries_batch = summaries[start_i:start_i + batch_size]
-        texts_batch = texts[start_i:start_i + batch_size]
+        end_i = start_i + batch_size
+        if end_i > len(texts) - 1:
+            end_i = len(texts) - 1
+            start_i = end_i - batch_size
+        summaries_batch = summaries[start_i:end_i]
+        texts_batch = texts[start_i:end_i]
+        pad_summaries_batch = np.array(pad_sentence_batch(summaries_batch))
+        pad_texts_batch = np.array(reverse_sentence_batch(pad_sentence_batch(texts_batch)))
+
+        # Need the lengths for the _lengths parameters
+        pad_summaries_lengths = []
+        for summary in pad_summaries_batch:
+            pad_summaries_lengths.append(len(summary))
+
+        pad_texts_lengths = []
+        for text in pad_texts_batch:
+            pad_texts_lengths.append(len(text))
+
+        yield pad_summaries_batch, pad_texts_batch, pad_summaries_lengths, pad_texts_lengths
+
+def get_random_batches(summaries, texts, batch_size):
+    """Batch summaries, texts, and the lengths of their sentences together"""
+    for batch_i in range(0, len(texts)//batch_size+1):
+        random_start = random.randint(0, len(texts)-batch_size)
+        summaries_batch = summaries[random_start:random_start+batch_size]
+        texts_batch = texts[random_start:random_start+batch_size]
         pad_summaries_batch = np.array(pad_sentence_batch(summaries_batch))
         pad_texts_batch = np.array(reverse_sentence_batch(pad_sentence_batch(texts_batch)))
 
@@ -645,54 +707,73 @@ def get_batches(summaries, texts, batch_size):
 ### Building the graph ###
 print("Building the model")
 
+
+
+def model_build():
+    global learning_rate
+    input_data, targets, lr, keep_prob, y_length, max_y_length, X_length = model_inputs()
+
+    # training_logits, inference_logits = seq2seq_model(tf.reverse(input_data, [-1]),
+    #                                                   targets,
+    #                                                   keep_prob,
+    #                                                   X_length,
+    #                                                   y_length,
+    #                                                   max_y_length,
+    #                                                   len(word_to_int) + 1,
+    #                                                   rnn_dim,
+    #                                                   num_layers,
+    #                                                   word_to_int,
+    #                                                   batch_size)
+
+    training_logits, inference_logits = seq2seq_model(input_data,
+                                                      targets,
+                                                      keep_prob,
+                                                      X_length,
+                                                      y_length,
+                                                      max_y_length,
+                                                      len(word_to_int) + 1,
+                                                      rnn_dim,
+                                                      num_layers,
+                                                      word_to_int,
+                                                      batch_size)
+
+    training_logits = tf.identity(training_logits.rnn_output, name='logits')
+    inference_logits = tf.identity(inference_logits.sample_id, name='predictions')
+
+    # Create the weights for sequence_loss
+    masks = tf.sequence_mask(y_length, max_y_length, dtype=tf.float32, name='mask')
+
+    with tf.name_scope("optimization"):
+        cost = tf.contrib.seq2seq.sequence_loss(training_logits, targets, masks)
+
+        # Here we can choose optimizer used in the model
+        if model_optimizer == 1:
+            optimizer = tf.train.GradientDescentOptimizer(learning_rate)
+        elif model_optimizer == 2:
+            optimizer = tf.train.AdamOptimizer(learning_rate)
+        else:
+            optimizer = tf.train.RMSPropOptimizer(learning_rate)
+
+        # Gradient Clipping
+        gradients = optimizer.compute_gradients(cost)
+        if model_gradient_clipping == 1:
+            capped_gradients = [(tf.clip_by_value(grad, clip_value_min, clip_value_max), var) for grad, var in gradients if grad is not None]
+        else:
+            capped_gradients = [(tf.clip_by_norm(grad, clip_norm), var) for grad, var in grfadients if grad is not None]
+        train_op = optimizer.apply_gradients(capped_gradients)
+        ######################################
+        tf.summary.scalar('loss',cost)
+        ###################################
+    merged_summary_op = tf.summary.merge_all()
+    saver = tf.train.Saver(tf.global_variables())
+    return training_logits, inference_logits, train_op, cost, merged_summary_op, input_data, targets, lr, y_length, X_length, keep_prob, saver
+
+
+
+
 def train():
     global learning_rate
-    train_graph = tf.Graph()
 
-    with train_graph.as_default():
-        input_data, targets, lr, keep_prob, y_length, max_y_length, X_length = model_inputs()
-
-        training_logits, inference_logits = seq2seq_model(tf.reverse(input_data, [-1]),
-                                                          targets,
-                                                          keep_prob,
-                                                          X_length,
-                                                          y_length,
-                                                          max_y_length,
-                                                          len(word_to_int) + 1,
-                                                          rnn_dim,
-                                                          num_layers,
-                                                          word_to_int,
-                                                          batch_size)
-
-        training_logits = tf.identity(training_logits.rnn_output, 'logits')
-        inference_logits = tf.identity(inference_logits.sample_id, name='predictions')
-
-        # Create the weights for sequence_loss
-        masks = tf.sequence_mask(y_length, max_y_length, dtype=tf.float32, name='mask')
-
-        with tf.name_scope("optimization"):
-            cost = tf.contrib.seq2seq.sequence_loss(training_logits, targets, masks)
-
-            # Here we can choose optimizer used in the model
-            if model_optimizer == 1:
-                optimizer = tf.train.GradientDescentOptimizer(learning_rate)
-            elif model_optimizer == 2:
-                optimizer = tf.train.AdamOptimizer(learning_rate)
-            else:
-                optimizer = tf.train.RMSPropOptimizer(learning_rate)
-
-            # Gradient Clipping
-            gradients = optimizer.compute_gradients(cost)
-            if model_gradient_clipping == 1:
-                capped_gradients = [(tf.clip_by_value(grad, clip_value_min, clip_value_max), var) for grad, var in gradients if grad is not None]
-            else:
-                capped_gradients = [(tf.clip_by_norm(grad, clip_norm), var) for grad, var in grfadients if grad is not None]
-            train_op = optimizer.apply_gradients(capped_gradients)
-            ######################################
-            tf.summary.scalar('loss',cost)
-            #########################################
-
-    print("Model is built")
 
     # writer = tf.summary.FileWriter("./demo/graph")
     # writer.add_graph(sess.graph)
@@ -722,21 +803,22 @@ def train():
     batch_loss = 0
     y_update_loss = [] # Record the update losses for saving improvements in the model
 
-    checkpoint = "./models/best_model.ckpt"
+
 
     config = tf.ConfigProto()
     config.gpu_options.allocator_type ='BFC'
     config.gpu_options.per_process_gpu_memory_fraction = 0.80
 
+    train_graph = tf.Graph()
     with tf.Session(graph=train_graph) as sess:
-        sess.run(tf.global_variables_initializer())
+    # with tf.Session() as sess:
+        training_logits, inference_logits, train_op, cost, merged_summary_op, input_data, targets, lr, y_length, X_length, keep_prob, saver = model_build()
 
-        # If we want to continue training a previous session
-        #loader = tf.train.import_meta_graph("./" + checkpoint + '.meta')
-        #loader.restore(sess, checkpoint)
-        ####################################################
-        merged_summary_op = tf.summary.merge_all()
-        summary_writer = tf.summary.FileWriter(log_dir, sess.graph)
+        sess.run(tf.global_variables_initializer())
+        # saver.restore(sess, model_path)   #换这句可以接着上次的训练
+        # print('get model successfully.....')
+
+        summary_writer = tf.summary.FileWriter(logdir, sess.graph)
         ####################################################
 
         for epoch_i in range(1, epochs+1):
@@ -744,6 +826,10 @@ def train():
             batch_loss = 0
             for batch_i, (y_batch, X_batch, y_lengths, X_lengths) in enumerate(
                     get_batches(sorted_y_short, sorted_X_short, batch_size)):
+                    #get_random_batches  /   get_real_random_batches  /  get_batches
+                # print(X_batch[0])
+                # print("batch_i:",batch_i)
+                # print(".........................")
                 start_time = time.time()
                 _, loss, summary_str = sess.run(
                     [train_op, cost, merged_summary_op],
@@ -760,58 +846,51 @@ def train():
                 batch_time = end_time - start_time
 
                 ############################################
-                # summary_str = sess.run(merged_summary_op)
 
-                summary_writer.add_summary(summary_str, epoch_i)
+                summary_writer.add_summary(summary_str, (epoch_i-1)*(len(sorted_X_short)//batch_size + 1) + batch_i)
                 ###################################################
 
+                # print("batch_i:",batch_i,"loss:",loss)
 
                 if batch_i % display_step == 0 and batch_i > 0:
-                    print(('Epoch {:>3}/{} Batch {:>4}/{} - Loss: {:>6.3f}, Seconds: {:>4.2f}'
-                          .format(epoch_i,
-                                  epochs,
-                                  batch_i,
-                                  len(sorted_X_short) // batch_size,
-                                  batch_loss / display_step,
-                                  batch_time*display_step)))
+                    # print(('Epoch {:>3}/{} Batch {:>4}/{} - Loss: {:>6.3f}, Seconds: {:>4.2f}'
+                    #       .format(epoch_i,
+                    #               epochs,
+                    #               batch_i,
+                    #               len(sorted_X_short) // batch_size,
+                    #               batch_loss / display_step,
+                    #               batch_time*display_step)))
                     batch_loss = 0
 
                 if batch_i % update_check == 0 and batch_i > 0:
-                    print(("Average loss for this update:", round(update_loss/update_check,3)))
+                    # print(("Average loss for this update:", round(update_loss/update_check,3)))
                     y_update_loss.append(update_loss)
 
                     # If the update loss is at a new minimum, save the model
                     if update_loss <= min(y_update_loss):
-                        print('New Record!')
+                        # print('New Record!')
                         stop_early = 0
                         saver = tf.train.Saver()
-                        saver.save(sess, checkpoint)
+                        saver.save(sess, model_path)
 
                     else:
-                        print("No Improvement.")
+                        # print("No Improvement.")
                         stop_early += 1
                         if stop_early == num_to_stop:
                             break
+                        if stop_early == num_to_stop - 2:
+                            # Reduce learning rate, but not below its minimum value
+                            learning_rate *= learning_rate_decay
+                            if learning_rate < min_learning_rate:
+                                learning_rate = min_learning_rate
                     update_loss = 0
 
 
-            # Reduce learning rate, but not below its minimum value
-            learning_rate *= learning_rate_decay
-            if learning_rate < min_learning_rate:
-                learning_rate = min_learning_rate
+
 
             if stop_early == num_to_stop:
-                print("Stopping Training.")
+                # print("Stopping Training.")
                 break
-##################################################################################
-
-train()
-
-##################################################################################
-
-
-
-
 
 
 
@@ -820,6 +899,7 @@ def text_to_seq(text):
 
     # text = clean_text(text)
     temp_list = [word_to_int.get(word, word_to_int['<UNK>']) for word in segment_text(text)]
+    # return list(reversed(temp_list+[word_to_int['<PAD>']]))
     return list(reversed(temp_list))
 
 # >>> a={"a":1,"b":2}
@@ -838,27 +918,29 @@ def predict():
     # Create your own review or use one from the dataset
     # input_sentence = "Do you like Joshua?"
     input_sentence = "世界上最美的人是谁"
+    # input_sentence = "我好想你啊"
+    # input_sentence = "无聊啊，找事做啊"
+
     text = text_to_seq(input_sentence)
     # random = np.random.randint(0,len(clean_texts))
     # input_sentence = clean_texts[random]
     # text = text_to_seq(clean_texts[random])
 
-    checkpoint = "./models/best_model.ckpt"
+    # model_path = "./models/best_model"
+    # model_path = "./best_model/models/best_model"
 
     loaded_graph = tf.Graph()
     with tf.Session(graph=loaded_graph) as sess:
+    # with tf.Session() as sess:
+        training_logits, inference_logits, train_op, cost, merged_summary_op, input_data, targets, lr, y_length, X_length, keep_prob, saver = model_build()
         # Load saved model
-        loader = tf.train.import_meta_graph(checkpoint + '.meta')
-        loader.restore(sess, checkpoint)
+        saver.restore(sess, model_path)
 
-        input_data = loaded_graph.get_tensor_by_name('input:0')
-        logits = loaded_graph.get_tensor_by_name('predictions:0')
-        X_length = loaded_graph.get_tensor_by_name('X_length:0')
-        y_length = loaded_graph.get_tensor_by_name('y_length:0')
-        keep_prob = loaded_graph.get_tensor_by_name('keep_prob:0')
+        # print('get model successfully.....')
+
 
         #Multiply by batch_size to match the model's input parameters
-        answer_logits = sess.run(logits, {input_data: [text]*batch_size,
+        answer_logits = sess.run(inference_logits, {input_data: [text]*batch_size,
                                           y_length: [np.random.randint(35,40)],
                                           X_length: [len(text)]*batch_size,
                                           keep_prob: 1.0})[0]
@@ -876,9 +958,23 @@ def predict():
     print(('  Word Ids:       {}'.format([i for i in answer_logits if i != pad])))
     print(('  Response Words: {}'.format(" ".join([int_to_word[i] for i in answer_logits if i != pad]))))
 
-#####################################################
-predict()
+    print('\nSummary1')
+    print(('  Word Ids:       {}'.format([i for i in answer_logits])))
+    print(('  Response Words: {}'.format(" ".join([int_to_word[i] for i in answer_logits]))))
+
+    print('\nSummary2')
+    print(('  Word Ids:       {}'.format([answer_logits[i] for i in range(len(answer_logits)) if i != pad and answer_logits[i] != answer_logits[i-1]])))
+    print(('  Response Words: {}'.format(" ".join([int_to_word[answer_logits[i]] for i in range(len(answer_logits)) if i != pad and answer_logits[i] != answer_logits[i-1]]))))
+
+
+##################################################################################
+
+# train()
+# predict()
 ########################################################
+for i in range(20):
+    train()
+    predict()
 
 
 

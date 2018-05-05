@@ -15,11 +15,12 @@ def segment(input, output):
         if line:
             line = line.strip()
             seg_list = jieba.cut(line)
-            # segments = ""
-            segments = "GO_ID"
+            segments = ""
+            # segments = "GO_ID"
             for str in seg_list:
                 segments = segments + " " + str
-            segments = segments + " EOS_ID"+"\n"
+            # segments = segments + " EOS_ID"+"\n"
+            segments = segments + "\n"
             output_file.write(segments)
         else:
             break
@@ -43,4 +44,6 @@ if __name__ == '__main__':
     if 3 != len(sys.argv):
         print("Usage: ", sys.argv[0], "input output")
         sys.exit(-1)
-    segment(sys.argv[1], sys.argv[2]);
+    # segment(sys.argv[1], sys.argv[2])
+    segment('chatbotv5/samples/question.big.norepeat', 'chatbotv5/samples/question.big.norepeat.segment')
+    segment('chatbotv5/samples/answer.big.norepeat', 'chatbotv5/samples/answer.big.norepeat.segment')
