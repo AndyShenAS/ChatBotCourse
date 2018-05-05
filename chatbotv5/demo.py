@@ -89,9 +89,13 @@ elif option == 3:
     size = 10
     # 初始学习率
     # init_learning_rate = 1
-    init_learning_rate = 0.04239112
-    Epoches = 500000
+    init_learning_rate = 0.0070696413
+    Epoches = 50000
     # step= 9990 loss= 0.55949193 learning_rate= 0.04239112
+    # step= 49990 loss= 0.26494506 learning_rate= 0.009697726
+    # step= 49990 loss= 0.18960254 learning_rate= 0.0070696413
+
+
 
 
 
@@ -293,12 +297,12 @@ def train():
 
                 if len(previous_losses) > learning_rate_threshold and loss_ret > max(previous_losses[-learning_rate_threshold:]):
                     sess.run(learning_rate_decay_op)
-            # if len(previous_losses) > learning_rate_threshold and loss_ret < min(previous_losses[-learning_rate_threshold:]):
-            #     sess.run(learning_rate_increase_op)
+                # if len(previous_losses) > learning_rate_threshold and loss_ret < min(previous_losses[-learning_rate_threshold:]):
+                #     sess.run(learning_rate_increase_op)
                 previous_losses.append(loss_ret)
 
-        # 模型持久化 , 最后再保存
-        saver.save(sess, model_path)
+                # 模型持久化 , 最后再保存
+                saver.save(sess, model_path)
 
 
 
