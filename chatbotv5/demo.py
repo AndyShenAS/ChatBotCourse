@@ -28,7 +28,7 @@ wordToken = word_token.WordToken()
 log_dir = '/tmp/tensorflow/old_seq2seq_logs/'
 difstr = time.strftime('%Y-%m-%d %H:%M:%S',time.localtime(time.time()))
 log_dir += difstr
-option = 1
+option = 2
 
 if option == 1:
     question_path = './samples/backup/question.segment'
@@ -353,9 +353,9 @@ def train():
                 if batch_i % 5 == 0:
                     print('step=', step,'batch_i=', batch_i, 'loss=', loss_ret, 'learning_rate=', learning_rate.eval())
 
-            if len(previous_losses) > learning_rate_threshold and loss_ret > max(previous_losses[-learning_rate_threshold:]):
+            if len(previous_losses) > learning_rate_threshold and sum(Epoches_losses)/len(Epoches_losses) > max(previous_losses[-learning_rate_threshold:]):
                 sess.run(learning_rate_decay_op)
-                print('update.......................... learning_rate=', learning_rate.eval())
+                print('update.......................... learning_rate=', learning_rate.eval(),'sum(Epoches_losses)/len(Epoches_losses):',sum(Epoches_losses)/len(Epoches_losses))
             # if len(previous_losses) > learning_rate_threshold and loss_ret < min(previous_losses[-learning_rate_threshold:]):
             #     sess.run(learning_rate_increase_op)
             previous_losses.append(sum(Epoches_losses)/len(Epoches_losses))
