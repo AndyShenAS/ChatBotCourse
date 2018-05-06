@@ -878,8 +878,8 @@ def train():
         training_logits, inference_logits, train_op, cost, merged_summary_op, input_data, targets, lr, y_length, X_length, keep_prob, saver, encoder_state = model_build()
 
         sess.run(tf.global_variables_initializer())
-        # saver.restore(sess, model_path)   #换这句可以接着上次的训练
-        # print('get model successfully.....')
+        saver.restore(sess, model_path)   #换这句可以接着上次的训练
+        print('get model successfully.....')
 
         summary_writer = tf.summary.FileWriter(logdir, sess.graph)
         ####################################################
@@ -980,9 +980,11 @@ def predict():
 
     # Create your own review or use one from the dataset
     # input_sentence = "Do you like Joshua?"
-    input_sentence = "世界上最美的人是谁"
+    # input_sentence = "世界上最美的人是谁"
     # Response Words: 全世界 最好 的 作者 是 谁 <EOS>
-    # input_sentence = "我好想你啊"
+    # Response Words: 世界 上 最美 的 人 是 谁 <EOS>
+    input_sentence = "我好想你啊"
+    # Response Words: 我 好想你 啊 <EOS>
     # input_sentence = "你是屌丝鸡"
     # Response Words: 你 是 屌丝 鸡 <EOS>
     # input_sentence = '有条狗,该不该日'
@@ -1042,7 +1044,7 @@ def predict():
 
 ##################################################################################
 
-train()
+# train()
 predict()
 ########################################################
 

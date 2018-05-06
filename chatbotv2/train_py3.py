@@ -917,7 +917,7 @@ def train():
 
                 ############################################
 
-                summary_writer.add_summary(summary_str, (epoch_i-1)*(len(sorted_X_short)//batch_size + 1) + batch_i)
+                summary_writer.add_summary(summary_str, (epoch_i-1)*(len(sorted_X_short)//batch_size) + batch_i)
                 ###################################################
 
                 # print("batch_i:",batch_i,"loss:",loss)

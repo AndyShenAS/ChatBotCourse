@@ -38,6 +38,33 @@ class WordToken(object):
             self.id2word_dict[self.START_ID + index] = word
         return index
 
+    def load_segment_file_list(self, file_list, min_freq):
+        """
+        加载样本文件列表，全部切词后统计词频，按词频由高到低排序后顺次编号
+        并存到self.word2id_dict和self.id2word_dict中
+        """
+        words_count = {}
+        for file in file_list:
+            with open(file, 'r') as file_object:
+                for line in file_object.readlines():
+                    line = line.strip()
+                    # print(line)
+                    for str in line.split(' '):
+                        if str in words_count:
+                            words_count[str] = words_count[str] + 1
+                        else:
+                            words_count[str] = 1
+
+        sorted_list = [[v[1], v[0]] for v in words_count.items()]
+        sorted_list.sort(reverse=True)
+        for index, item in enumerate(sorted_list):
+            word = item[1]
+            if item[0] < min_freq:
+                break
+            self.word2id_dict[word] = self.START_ID + index
+            self.id2word_dict[self.START_ID + index] = word
+        return index
+
     def word2id(self, word):
         if not isinstance(word, str):
             print("Exception: error word not unicode")
