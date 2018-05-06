@@ -28,14 +28,14 @@ wordToken = word_token.WordToken()
 log_dir = '/tmp/tensorflow/old_seq2seq_logs/'
 difstr = time.strftime('%Y-%m-%d %H:%M:%S',time.localtime(time.time()))
 log_dir += difstr
-option = 2
+option = 1
 
 if option == 1:
-    question_path = './samples/backup/question'
-    answer_path = './samples/backup/answer'
+    question_path = './samples/backup/question.segment'
+    answer_path = './samples/backup/answer.segment'
     train_set_modify = 0
     model_path = './model/demo'
-    batchNUM = 100
+    batchNUM = 1000
     learning_rate_threshold = 5
     min_freq = 1
 
@@ -46,8 +46,8 @@ if option == 1:
     # LSTM神经元size
     size = 10
     # 初始学习率
-    init_learning_rate = 0.0010611147
-    Epoches = 10
+    init_learning_rate = 0.01
+    Epoches = 500
     # step= 49990 loss= 0.57324296 learning_rate= 0.007855157
     # step= 49990 loss= 0.5078533 learning_rate= 0.004174552
     # step= 99990 loss= 0.45555034 learning_rate= 0.0017970073
@@ -346,7 +346,7 @@ def train():
                 [loss_ret, _, summary_str] = sess.run([loss, update, merged_summary_op], input_feed)
 
                 ###################################################
-                summary_writer.add_summary(summary_str, step*(len(train_set)//batchNUM) + batch_i)
+                summary_writer.add_summary(summary_str, step*(len(train_set)//batchNUM + 1) + batch_i)
                 ###################################################
                 Epoches_losses.append(loss_ret)
 
