@@ -40,6 +40,13 @@ from nltk import word_tokenize, sent_tokenize
 # output_path = 'models/model1'
 unique_seqs = {}
 
+batch_size = 256
+threshold = 10
+num_to_stop = 7
+# batch_size = 32
+# threshold = 1
+# num_to_stop = 7
+
 question_seqs = []
 answer_seqs = []
 
@@ -101,7 +108,7 @@ def init_seq(input_file = './corpus.segment'):
         # answer_seqs.append(answer_seq)
     file_object.close()
 
-# get_train_set()
+get_train_set()
 print('len(unique_seqs):',len(unique_seqs))
 init_seq()
 print('len(unique_seqs):',len(unique_seqs))
@@ -187,7 +194,7 @@ load_vectors()
 embeddings_index = word_vector_dict
 
 missing_words = 0
-threshold = 10
+
 # add the words to this string and print
 missing_words_list = []
 
@@ -364,7 +371,7 @@ learning_rate = 0.001
 learning_rate_decay = 0.95
 min_learning_rate = 0.00005
 epochs = 100
-batch_size = 256
+
 keep_probability = 0.75
 # 1 - GradientDescentOptimizer
 # 2 - AdamOptimizer
@@ -849,7 +856,7 @@ def train():
     display_step = 20 # Check training loss after every 20 batches
     stop_early = 0
     # If the update loss does not decrease in num_to_stop consecutive update checks, stop training
-    num_to_stop = 7
+
 
     per_epoch = 3
 
@@ -977,7 +984,12 @@ def predict():
     # Response Words: 全世界 最好 的 作者 是 谁 <EOS>
     # input_sentence = "我好想你啊"
     # input_sentence = "你是屌丝鸡"
-    # Response Words: 你 屌丝 鸡 <EOS>
+    # Response Words: 你 是 屌丝 鸡 <EOS>
+    # input_sentence = '有条狗,该不该日'
+    # Response Words: 有条 狗 , 该不该 日 <EOS>
+    # input_sentence = '必须要给点厉害啊'
+    # input_sentence = '怎么个厉害法'
+    # input_sentence = '他打羽毛球很厉害！'
 
     text = text_to_seq(input_sentence)
     # random = np.random.randint(0,len(clean_texts))
@@ -1001,11 +1013,13 @@ def predict():
         answer_logits, auto_encoder = sess.run([inference_logits, encoder_state], {input_data: [text]*batch_size,
                                           y_length: [np.random.randint(35,40)],
                                           X_length: [len(text)]*batch_size,
-                                          keep_prob: 1.0})[0]
+                                          keep_prob: 1.0})
+        answer_logits = answer_logits[0]
+        auto_encoder  = auto_encoder[0]
 
     # Remove the paddings
     pad = word_to_int["<PAD>"]
-    print('auto_encoder:'，auto_encoder)
+    print('auto_encoder:',auto_encoder)
 
     print(('Original Text:', input_sentence))
 
