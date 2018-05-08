@@ -338,9 +338,10 @@ for length in range(1, max_X_length):
 print('number of sorted input', len(sorted_X))
 print('number of sorted output', len(sorted_y))
 print(sorted_X[:100])
+print(sorted_y[:100])
 
 print(word_embedding_matrix.shape)
-print(word_embedding_matrix[-2])
+# print(word_embedding_matrix[-2])
 
 
 
@@ -1000,6 +1001,7 @@ def predict():
     input_sentence = "世界上最美的人是谁"
     # Response Words: 是 世界 上 最 忠诚 的 人 <EOS>
     # Response Words: 小通 啊 ， 必须 的 ， 远在天边 ， 近在眼前 ！ <EOS>
+    # Response Words: 是 你 老婆 ！ 宝宝 ！ <EOS>
     # input_sentence = "我好想你啊"
     # Response Words: 会 分手 <EOS>
     # input_sentence = "无聊啊，找事做啊"

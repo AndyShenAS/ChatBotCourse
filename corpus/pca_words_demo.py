@@ -69,14 +69,16 @@ def pca_transfer(dic):
         weights.append(v)
     test_weights = []
     test_words =[]
-    test_weights.append(dic["高兴"])
-    test_weights.append(dic["伤心"])
-    test_weights.append(dic["简单"])
-    test_weights.append(dic["复杂"])
-    test_weights.append(dic["美丽"])
-    test_weights.append(dic["丑陋"])
-    test_weights.append(dic["诚实"])
-    test_weights.append(dic["虚伪"])
+    # test_weights.append(dic["高兴"])
+    # test_weights.append(dic["伤心"])
+    # test_weights.append(dic["简单"])
+    # test_weights.append(dic["复杂"])
+    # test_weights.append(dic["美丽"])
+    # test_weights.append(dic["丑陋"])
+    # test_weights.append(dic["诚实"])
+    # test_weights.append(dic["虚伪"])
+    test_weights.append(dic["喜欢"])
+    test_weights.append(dic["讨厌"])
     test_weights.append(dic["爱"])
     test_weights.append(dic["恨"])
     # test_weights.append(dic["男人"])
@@ -89,7 +91,8 @@ def pca_transfer(dic):
     # test_weights.append(dic["女"])
 
     # test_words.extend(["你","我","我们","他","她"])
-    test_words.extend(["happy","sad","simple","complex","beautiful","ugly","honest","false","love","hate"])
+    # test_words.extend(["happy","sad","simple","complex","beautiful","ugly","honest","false","love","hate"])
+    test_words.extend(["like","dislike","love","hate"])
     # test_words.extend(["man","woman","king","queen","princess","prince","male","female"])
     min_max_scaler = preprocessing.MinMaxScaler()
     globalMean_minmax = min_max_scaler.fit_transform(test_weights)
@@ -119,7 +122,7 @@ def pca_transfer(dic):
 
 if __name__ == '__main__':
     if 2 != len(sys.argv):
-        print("Usage: ", sys.argv[0], "./chatbotv2/vectors.bin")
+        print("Usage: ", sys.argv[0], "./data/vectors.bin")
         sys.exit(-1)
         # ./data/vectors.bin
         # 提示怎么写参数的file = open('question',"w", encoding='utf-8')

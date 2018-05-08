@@ -976,7 +976,7 @@ def text_to_seq(text):
 # [1, 2, 3, 3]
 
 
-def predict():
+def predict(input_sentence = '我肚子好饿饿哦'):
 
     # Create your own review or use one from the dataset
     # input_sentence = "Do you like Joshua?"
@@ -992,7 +992,7 @@ def predict():
     # input_sentence = '必须要给点厉害啊'
     # input_sentence = '怎么个厉害法'
     # input_sentence = '他打羽毛球很厉害！'
-    input_sentence = '我肚子好饿饿哦'
+    # input_sentence = '我肚子好饿饿哦'
 
     text = text_to_seq(input_sentence)
     # random = np.random.randint(0,len(clean_texts))
@@ -1019,17 +1019,21 @@ def predict():
                                           keep_prob: 1.0})
         test_answer_logits = answer_logits
         answer_logits = answer_logits[0]
-        # auto_encoder  = auto_encoder[0]
+        auto_encoder  = auto_encoder[:,:,0,:]
+        auto_encoder = np.reshape(auto_encoder, 2048)
+        my_encoder = auto_encoder.tolist()
 
     # Remove the paddings
     pad = word_to_int["<PAD>"]
-    # print('auto_encoder[:,0,:]:',auto_encoder[:,0,:])
-    # print('type of auto_encoder[:,0,:]:',type(auto_encoder[:,0,:]))
-    # print('shape of auto_encoder[:,0,:]:',auto_encoder[:,0,:].shape)
-    print('type of auto_encoder:',type(auto_encoder))
-    print('shape of auto_encoder:',auto_encoder.shape)
-    print('type of test_answer_logits:',type(test_answer_logits))
-    print('shape of test_answer_logits:',test_answer_logits.shape)
+    # print('auto_encoder[:,0,:]:',auto_encoder[:,:,0,:])
+    # print('type of auto_encoder[:,0,:]:',type(auto_encoder[:,:,0,:]))
+    # print('shape of auto_encoder[:,0,:]:',auto_encoder[:,:,0,:].shape)
+    # print('my_encoder:',my_encoder)
+    # print('auto_encoder:',auto_encoder)
+    # print('type of auto_encoder:',type(auto_encoder))
+    # print('shape of auto_encoder:',auto_encoder.shape)
+    # print('type of test_answer_logits:',type(test_answer_logits))
+    # print('shape of test_answer_logits:',test_answer_logits.shape)
 
 
     print(('Original Text:', input_sentence))
@@ -1038,13 +1042,15 @@ def predict():
     print(('  Word Ids:    {}'.format([i for i in text])))
     print(('  Input Words: {}'.format(" ".join([int_to_word[i] for i in text]))))
 
-    print('\nSummary')
-    print(('  Word Ids:       {}'.format([i for i in answer_logits if i != pad])))
-    print(('  Response Words: {}'.format(" ".join([int_to_word[i] for i in answer_logits if i != pad]))))
+    # print('\nSummary1')
+    # print(('  Word Ids:       {}'.format([i for i in answer_logits if i != pad])))
+    # print(('  Response Words: {}'.format(" ".join([int_to_word[i] for i in answer_logits if i != pad]))))
 
-    print('\nSummary1')
+    print('\nSummary')
     print(('  Word Ids:       {}'.format([i for i in answer_logits])))
     print(('  Response Words: {}'.format(" ".join([int_to_word[i] for i in answer_logits]))))
+
+    return my_encoder
 
     # print('\nSummary2')
     # print(('  Word Ids:       {}'.format([answer_logits[i] for i in range(len(answer_logits)) if i != pad and answer_logits[i] != answer_logits[i-1]])))
@@ -1054,8 +1060,17 @@ def predict():
 ##################################################################################
 
 # train()
-predict()
+# predict()
 ########################################################
+# sentences = ['我喜欢你','我爱你','我讨厌你','我恨你']
+sentences = ['我喜欢你','我爱你','我讨厌你','我恨你','你喜欢我','你爱我','你讨厌我','你恨我']
+sentences_dic = {}
+for sentence in sentences:
+    sentences_dic[sentence] = predict(sentence)
+
+f = open('./data/sentence_vectors.dic','w')
+f.write(str(sentences_dic))
+f.close()
 
 
 

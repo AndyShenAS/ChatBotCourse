@@ -41,11 +41,13 @@ def segment_text(text):
 
 
 if __name__ == '__main__':
-    if 3 != len(sys.argv):
-        print("Usage: ", sys.argv[0], "input output")
-        sys.exit(-1)
+    # if 3 != len(sys.argv):
+    #     print("Usage: ", sys.argv[0], "input output")
+    #     sys.exit(-1)
     # segment(sys.argv[1], sys.argv[2])
     # segment('chatbotv5/samples/question.big.norepeat', 'chatbotv5/samples/question.big.norepeat.segment')
     # segment('chatbotv5/samples/answer.big.norepeat', 'chatbotv5/samples/answer.big.norepeat.segment')
-    segment('chatbotv5/samples/backup/question', 'chatbotv5/samples/backup/question.segment')
-    segment('chatbotv5/samples/backup/answer', 'chatbotv5/samples/backup/answer.segment')
+    # segment('chatbotv5/samples/backup/question', 'chatbotv5/samples/backup/question.segment')
+    # segment('chatbotv5/samples/backup/answer', 'chatbotv5/samples/backup/answer.segment')
+    segment('chatbotv2/data/question.all.norepeat', 'chatbotv2/data/question.all.norepeat.segment')
+    segment('chatbotv2/data/answer.all.norepeat', 'chatbotv2/data/answer.all.norepeat.segment')
