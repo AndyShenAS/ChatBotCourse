@@ -983,7 +983,7 @@ def predict():
     # input_sentence = "世界上最美的人是谁"
     # Response Words: 全世界 最好 的 作者 是 谁 <EOS>
     # Response Words: 世界 上 最美 的 人 是 谁 <EOS>
-    input_sentence = "我好想你啊"
+    # input_sentence = "我好想你啊"
     # Response Words: 我 好想你 啊 <EOS>
     # input_sentence = "你是屌丝鸡"
     # Response Words: 你 是 屌丝 鸡 <EOS>
@@ -992,6 +992,7 @@ def predict():
     # input_sentence = '必须要给点厉害啊'
     # input_sentence = '怎么个厉害法'
     # input_sentence = '他打羽毛球很厉害！'
+    input_sentence = '我肚子好饿饿哦'
 
     text = text_to_seq(input_sentence)
     # random = np.random.randint(0,len(clean_texts))
