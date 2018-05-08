@@ -8,9 +8,9 @@ from sklearn.decomposition import PCA
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from sklearn.cluster import MeanShift, estimate_bandwidth
+plt.rcParams['font.sans-serif']=['FangSong'] #用来正常显示中文标签
+plt.rcParams['axes.unicode_minus']=False #用来正常显示负号
 
-max_w = 50
-float_size = 4
 
 
 def load_vectors(input = './data/sentence_vectors.dic'):
@@ -65,15 +65,10 @@ def pca_transfer(dic):
         weights.append(v)
     test_weights = []
     test_sentences =[]
-    test_weights.append(dic["我喜欢你"])
-    test_weights.append(dic["我爱你"])
-    test_weights.append(dic["我讨厌你"])
-    test_weights.append(dic["我恨你"])
-    test_weights.append(dic["你喜欢我"])
-    test_weights.append(dic["你爱我"])
-    test_weights.append(dic["你讨厌我"])
-    test_weights.append(dic["你恨我"])
-    test_sentences.extend(["I like you","I love you","I dislike you","I hate you","You like me","You love me","You dislike me","You hate me"])
+
+    test_weights = weights
+    test_sentences =sentences
+
     # test_words.extend(["man","woman","king","queen","princess","prince","male","female"])
     min_max_scaler = preprocessing.MinMaxScaler()
     globalMean_minmax = min_max_scaler.fit_transform(test_weights)
@@ -81,23 +76,24 @@ def pca_transfer(dic):
     pca = PCA(n_components=0.95)
     pca.fit(globalMean_minmax)
     newData_PCA = pca.transform(globalMean_minmax)
-    #setting plt
-    # plt.xlim(xmax=6,xmin=-6)
-    # plt.ylim(ymax=6,ymin=-6)
-    plt.xlabel("width",fontsize=18)
-    plt.ylabel("height",fontsize=18)
-    for i in range(len(test_sentences)):
-        plt.text(newData_PCA[i][0],newData_PCA[i][1]+0.2,str(test_sentences[i]), family='serif', style='italic', ha='right', wrap=True, fontsize=18)
-        plt.scatter(newData_PCA[i][0],newData_PCA[i][1], color='', marker='o', edgecolors='r', s=60)
-    # plt.legend(loc='upper center', shadow=True, fontsize='x-large')
-    plt.grid(True)
-    plt.show()
     print(newData_PCA)
     # print(words)
     print('PCA result......')
     print(pca.explained_variance_ratio_)
     print(pca.explained_variance_)
     print(pca.n_components_)
+    #setting plt
+    # plt.xlim(xmax=6,xmin=-6)
+    # plt.ylim(ymax=6,ymin=-6)
+    plt.xlabel("width",fontsize=18, family='serif', style='italic')
+    plt.ylabel("height",fontsize=18, family='serif', style='italic')
+    for i in range(len(test_sentences)):
+        plt.text(newData_PCA[i][0],newData_PCA[i][1]+0.2,test_sentences[i], ha='right', wrap=True, fontsize=16)
+        plt.scatter(newData_PCA[i][0],newData_PCA[i][1], color='', marker='o', edgecolors='r', s=60)
+    # plt.legend(loc='upper center', shadow=True, fontsize='x-large')
+    plt.grid(True)
+    plt.show()
+
 
 
 
@@ -108,8 +104,8 @@ if __name__ == '__main__':
         # ./data/vectors.bin
         # 提示怎么写参数的file = open('question',"w", encoding='utf-8')
     dic = load_vectors('./data/sentence_vectors.dic')
-    # pca_transfer(dic)
     eval_distance(dic)
+    pca_transfer(dic)
 
 
 

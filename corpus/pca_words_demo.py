@@ -8,6 +8,17 @@ from sklearn.decomposition import PCA
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from sklearn.cluster import MeanShift, estimate_bandwidth
+# from pylab import mpl
+#
+# mpl.rcParams['font.sans-serif'] = ['FangSong'] # 指定默认字体
+# mpl.rcParams['axes.unicode_minus'] = False # 解决保存图像是负号'-'显示为方块的问题
+#coding:utf-8
+# plt.rcParams['font.sans-serif']=['simhei'] #用来正常显示中文标签
+plt.rcParams['font.sans-serif']=['FangSong'] #用来正常显示中文标签
+plt.rcParams['axes.unicode_minus']=False #用来正常显示负号
+#有中文出现的情况，需要u'内容'
+
+
 
 max_w = 50
 float_size = 4
@@ -81,6 +92,8 @@ def pca_transfer(dic):
     test_weights.append(dic["讨厌"])
     test_weights.append(dic["爱"])
     test_weights.append(dic["恨"])
+    test_weights.append(dic[""])
+    test_weights.append(dic["恨"])
     # test_weights.append(dic["男人"])
     # test_weights.append(dic["女人"])
     # test_weights.append(dic["国王"])
@@ -92,8 +105,11 @@ def pca_transfer(dic):
 
     # test_words.extend(["你","我","我们","他","她"])
     # test_words.extend(["happy","sad","simple","complex","beautiful","ugly","honest","false","love","hate"])
-    test_words.extend(["like","dislike","love","hate"])
+    test_words.extend(["喜欢","讨厌","爱","恨"])
+    # test_words.extend(["love","love","love","love"])
     # test_words.extend(["man","woman","king","queen","princess","prince","male","female"])
+    # test_words = words[0:100]
+    # test_weights = weights[0:100]
     min_max_scaler = preprocessing.MinMaxScaler()
     globalMean_minmax = min_max_scaler.fit_transform(test_weights)
     #PCA 降维
@@ -101,13 +117,16 @@ def pca_transfer(dic):
     pca.fit(globalMean_minmax)
     newData_PCA = pca.transform(globalMean_minmax)
     #setting plt
-    plt.xlim(xmax=6,xmin=-6)
-    plt.ylim(ymax=6,ymin=-6)
-    plt.xlabel("width",fontsize=18)
-    plt.ylabel("height",fontsize=18)
+    plt.title('中文词向量')
+    # plt.xlim(xmax=6,xmin=-6)
+    # plt.ylim(ymax=6,ymin=-6)
+    plt.xlabel("width",fontsize=18, family='serif', style='italic')
+    plt.ylabel("height",fontsize=18, family='serif', style='italic')
     for i in range(len(test_words)):
-        plt.text(newData_PCA[i][0],newData_PCA[i][1]+0.2,str(test_words[i]), family='serif', style='italic', ha='right', wrap=True, fontsize=18)
-        plt.scatter(newData_PCA[i][0],newData_PCA[i][1], color='', marker='o', edgecolors='r', s=60)
+        plt.text(newData_PCA[i][0],newData_PCA[i][1]+0.02,test_words[i], ha='right', wrap=True, fontsize=8)
+        # plt.text(newData_PCA[i][0],newData_PCA[i][1]+0.2,str(test_sentences[i]), family='serif', style='italic', ha='right', wrap=True, fontsize=18)
+        # 要把family='serif', style='italic',删掉
+        plt.scatter(newData_PCA[i][0],newData_PCA[i][1], color='', marker='o', edgecolors='r', s=10)
     # plt.legend(loc='upper center', shadow=True, fontsize='x-large')
     plt.grid(True)
     plt.show()

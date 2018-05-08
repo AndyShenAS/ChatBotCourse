@@ -1000,6 +1000,7 @@ def predict():
     # input_sentence = "Do you like Joshua?"
     input_sentence = "世界上最美的人是谁"
     # Response Words: 是 世界 上 最 忠诚 的 人 <EOS>
+    # Response Words: 是 你 老婆 ！ <EOS>
     # Response Words: 小通 啊 ， 必须 的 ， 远在天边 ， 近在眼前 ！ <EOS>
     # Response Words: 是 你 老婆 ！ 宝宝 ！ <EOS>
     # input_sentence = "我好想你啊"

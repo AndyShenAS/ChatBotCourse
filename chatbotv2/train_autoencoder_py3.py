@@ -1059,18 +1059,20 @@ def predict(input_sentence = '我肚子好饿饿哦'):
 
 ##################################################################################
 
-# train()
-# predict()
+train()
+predict()
 ########################################################
 # sentences = ['我喜欢你','我爱你','我讨厌你','我恨你']
-sentences = ['我喜欢你','我爱你','我讨厌你','我恨你','你喜欢我','你爱我','你讨厌我','你恨我']
-sentences_dic = {}
-for sentence in sentences:
-    sentences_dic[sentence] = predict(sentence)
 
-f = open('./data/sentence_vectors.dic','w')
-f.write(str(sentences_dic))
-f.close()
+
+# sentences = ['我喜欢你','我爱你','我讨厌你','我恨你','你喜欢我','你爱我','你讨厌我','你恨我']
+# sentences_dic = {}
+# for sentence in sentences:
+#     sentences_dic[sentence] = predict(sentence)
+#
+# f = open('./data/sentence_vectors.dic','w')
+# f.write(str(sentences_dic))
+# f.close()
 
 
 
