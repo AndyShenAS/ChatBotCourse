@@ -895,8 +895,8 @@ def train():
         training_logits, inference_logits, train_op, cost, merged_summary_op, input_data, targets, lr, y_length, X_length, keep_prob, saver = model_build()
 
         sess.run(tf.global_variables_initializer())
-        # saver.restore(sess, model_path)   #换这句可以接着上次的训练
-        # print('get model successfully.....')
+        saver.restore(sess, model_path)   #换这句可以接着上次的训练
+        print('get model successfully.....')
 
         summary_writer = tf.summary.FileWriter(logdir, sess.graph)
         ####################################################
@@ -1002,6 +1002,7 @@ def predict():
     # Response Words: 小通 啊 ， 必须 的 ， 远在天边 ， 近在眼前 ！ <EOS>
     # input_sentence = "我好想你啊"
     # Response Words: 会 分手 <EOS>
+    # Response Words: 我 也 想 你 啊 <EOS>
     # input_sentence = "无聊啊，找事做啊"
     # Response Words: 就是 每天 重复 <EOS>
     # input_sentence = "你是谁啊"
@@ -1009,6 +1010,7 @@ def predict():
 
     # input_sentence = "我好困怎么办"
     # Response Words: 好困 吧 ， 睡醒 就 休息 了 呢 … … <EOS>
+    # Response Words: 好困 去 睡觉 呀 <EOS>
     # Response Words: 好困 ， 休息 ， 陪 你们 聊天 吧 <EOS>
     # input_sentence = "我想出去玩"
     # Response Words: 屌丝 不哭 ， 站 起来 撸 <EOS>
@@ -1033,7 +1035,8 @@ def predict():
     # input_sentence = "你寂寞无聊时会干什么"
     # Response Words: 主人 ， 我 陪 我 聊天 <EOS>
     # Response Words: 我 是 小 公主 ， 我 是 只 程序 的 <EOS>
-    # input_sentence = "你这家伙今天怎么样"
+    input_sentence = "你这家伙今天怎么样"
+    # Response Words: 又 不光 又 聪明 的 还 你 就是 我 ！ <EOS>
 
 
 
@@ -1076,11 +1079,11 @@ def predict():
     print(('  Word Ids:    {}'.format([i for i in text])))
     print(('  Input Words: {}'.format(" ".join([int_to_word[i] for i in text]))))
 
-    print('\nSummary')
-    print(('  Word Ids:       {}'.format([i for i in answer_logits if i != pad])))
-    print(('  Response Words: {}'.format(" ".join([int_to_word[i] for i in answer_logits if i != pad]))))
+    # print('\nSummary1')
+    # print(('  Word Ids:       {}'.format([i for i in answer_logits if i != pad])))
+    # print(('  Response Words: {}'.format(" ".join([int_to_word[i] for i in answer_logits if i != pad]))))
 
-    print('\nSummary1')
+    print('\nSummary')
     print(('  Word Ids:       {}'.format([i for i in answer_logits])))
     print(('  Response Words: {}'.format(" ".join([int_to_word[i] for i in answer_logits]))))
 
