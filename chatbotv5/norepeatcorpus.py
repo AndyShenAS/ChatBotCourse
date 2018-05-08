@@ -6,15 +6,15 @@ import jieba
 question_path = './samples/question.big'
 answer_path = './samples/answer.big'
 
-question_path_out = './samples/question.big.norepeat'
-answer_path_out = './samples/answer.big.norepeat'
+question_path_out = '../chatbotv2/data/question.all.norepeat'
+answer_path_out = '../chatbotv2/data/answer.all.norepeat'
 
 
 
 
+train_set = {}
 
-def get_train_set():
-    train_set = {}
+def get_train_set(question_path = question_path ,answer_path = answer_path):
     count = 0
     with open(question_path, 'r') as question_file:
         with open(answer_path, 'r') as answer_file:
@@ -32,7 +32,6 @@ def get_train_set():
                 else:
                     break
     print('original num: ', count)
-    return train_set
 
 def save_train_set(train_set):
     question_file = open(question_path_out, 'w')
@@ -48,7 +47,10 @@ def save_train_set(train_set):
 
 
 if __name__ == '__main__':
-    train_set = get_train_set()
+    get_train_set()
+    # print(train_set)
+    print('no repeat num: ',len(train_set))
+    get_train_set('./samples/backup/question','./samples/backup/answer')
     # print(train_set)
     print('no repeat num: ',len(train_set))
     save_train_set(train_set)
