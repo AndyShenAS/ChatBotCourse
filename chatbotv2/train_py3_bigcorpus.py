@@ -1000,6 +1000,7 @@ def predict():
     # input_sentence = "Do you like Joshua?"
     input_sentence = "世界上最美的人是谁"
     # Response Words: 是 世界 上 最 忠诚 的 人 <EOS>
+    # Response Words: 是 你 老婆 ！ <EOS>
     # Response Words: 小通 啊 ， 必须 的 ， 远在天边 ， 近在眼前 ！ <EOS>
     # Response Words: 是 你 老婆 ！ 宝宝 ！ <EOS>
     # input_sentence = "我好想你啊"
@@ -1037,7 +1038,7 @@ def predict():
     # input_sentence = "你寂寞无聊时会干什么"
     # Response Words: 主人 ， 我 陪 我 聊天 <EOS>
     # Response Words: 我 是 小 公主 ， 我 是 只 程序 的 <EOS>
-    input_sentence = "你这家伙今天怎么样"
+    # input_sentence = "你这家伙今天怎么样"
     # Response Words: 又 不光 又 聪明 的 还 你 就是 我 ！ <EOS>
 
 
@@ -1096,7 +1097,7 @@ def predict():
 
 ##################################################################################
 
-train()
+# train()
 
 predict()
 ########################################################

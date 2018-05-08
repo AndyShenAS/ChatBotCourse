@@ -83,6 +83,15 @@ X_clean = X
 
 print('number of original input', len(X_clean))
 print('number of original output', len(y_clean))
+count = 0
+for i in range(len(X_clean)):
+    # if '最美' in X_clean[i] and '老婆' in y_clean[i]:
+    if '出去' in X_clean[i] and '玩' in X_clean[i] :
+    # if '寂寞' in X_clean[i] and '聊天' in y_clean[i]:
+        count += 1
+        print(count)
+        print('ques:',X_clean[i])
+        print('ans:',y_clean[i])
 
 
 
@@ -314,9 +323,9 @@ for length in range(1, max_X_length):
             length == len(int_X[i])
            ):
             if invalid_sample(int_X[i]):
-                print('length:',length)
-                print('invalid question:',[int_to_word[id] for id in int_X[i]])
-                print('invalid answer:',[int_to_word[id] for id in int_y[i]])
+                # print('length:',length)
+                # print('invalid question:',[int_to_word[id] for id in int_X[i]])
+                # print('invalid answer:',[int_to_word[id] for id in int_y[i]])
                 count_invalid += 1
                 continue
             sorted_y.append(int_y[i])
