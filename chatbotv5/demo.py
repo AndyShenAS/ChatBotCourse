@@ -62,7 +62,7 @@ elif option == 2:
     answer_path = './samples/answer.big.norepeat.segment'
     train_set_modify = 0
     model_path = './model/bigcorpus/demo'
-    batchNUM = 256
+    batchNUM = 4096
     learning_rate_threshold = 8
     min_freq = 40
     # 输入序列长度
@@ -70,9 +70,9 @@ elif option == 2:
     # 输出序列长度
     output_seq_len = 7
     # LSTM神经元size
-    size = 8
+    size = 204
     # 初始学习率
-    init_learning_rate = 0.01
+    init_learning_rate = 0.001
     Epoches = 100
 
 
@@ -184,7 +184,7 @@ def get_order_train_set(train_set):
 
 
 
-def get_samples(train_set, batch_num):
+def get_samples(train_set, batch_num, step):
     """构造样本数据
 
     :return:
@@ -194,6 +194,7 @@ def get_samples(train_set, batch_num):
                         array([15, 15], dtype=int32), array([2, 2], dtype=int32)]
     """
     # train_set = [[[5, 7, 9], [11, 13, 15, EOS_ID]], [[7, 9, 11], [13, 15, 17, EOS_ID]], [[15, 17, 19], [21, 23, 25, EOS_ID]]]
+    # for i in [range(len(train_set)//batch_num + 1)[step % (len(train_set)//batch_num + 1)]]*100:
     for i in range(len(train_set)//batch_num + 1):
         raw_encoder_input = []
         raw_decoder_input = []
@@ -252,6 +253,7 @@ def get_model(feed_previous=False):
     global learning_rate
 
     learning_rate = tf.Variable(float(init_learning_rate), trainable=False, dtype=tf.float32)
+    learning_rate_init = learning_rate.assign(float(init_learning_rate))
     learning_rate_decay_op = learning_rate.assign(learning_rate * 0.9)
     learning_rate_increase_op = learning_rate.assign(learning_rate * 1.1)
 
@@ -304,7 +306,7 @@ def get_model(feed_previous=False):
     # 模型持久化
     saver = tf.train.Saver(tf.global_variables())
 
-    return encoder_inputs, decoder_inputs, target_weights, outputs,loss, update, saver, learning_rate_decay_op, learning_rate_increase_op, learning_rate
+    return encoder_inputs, decoder_inputs, target_weights, outputs,loss, update, saver,learning_rate_init, learning_rate_decay_op, learning_rate_increase_op, learning_rate
 
 
 def train():
@@ -319,12 +321,15 @@ def train():
     print('length of trainset: ',len(train_set))
     with tf.Session() as sess:
 
-        encoder_inputs, decoder_inputs, target_weights, outputs, loss, update, saver, learning_rate_decay_op, learning_rate_increase_op, learning_rate = get_model()
+        encoder_inputs, decoder_inputs, target_weights, outputs, loss, update, saver,learning_rate_init, learning_rate_decay_op, learning_rate_increase_op, learning_rate = get_model()
+
+
 
         # 全部变量初始化
         sess.run(tf.global_variables_initializer())
         # saver.restore(sess, model_path)   #换这句可以接着上次的训练
-        print('get model successfully.....')
+        # print('get model successfully.....')
+        sess.run(learning_rate_init)
 
         ####################################################
         merged_summary_op = tf.summary.merge_all()
@@ -335,7 +340,7 @@ def train():
         previous_losses = []
         for step in range(Epoches):
             Epoches_losses = []
-            for batch_i, (sample_encoder_inputs, sample_decoder_inputs, sample_target_weights) in enumerate(get_samples(train_set, batchNUM)):
+            for batch_i, (sample_encoder_inputs, sample_decoder_inputs, sample_target_weights) in enumerate(get_samples(train_set, batchNUM, step)):
                 input_feed = {}
                 for l in range(input_seq_len):
                     input_feed[encoder_inputs[l].name] = sample_encoder_inputs[l]
@@ -347,6 +352,7 @@ def train():
 
                 ###################################################
                 summary_writer.add_summary(summary_str, step*(len(train_set)//batchNUM + 1) + batch_i)
+                # summary_writer.add_summary(summary_str, step*100 + batch_i)
                 ###################################################
                 Epoches_losses.append(loss_ret)
 
@@ -355,7 +361,8 @@ def train():
 
             if len(previous_losses) > learning_rate_threshold and sum(Epoches_losses)/len(Epoches_losses) > max(previous_losses[-learning_rate_threshold:]):
                 sess.run(learning_rate_decay_op)
-                print('update.......................... learning_rate=', learning_rate.eval(),'sum(Epoches_losses)/len(Epoches_losses):',sum(Epoches_losses)/len(Epoches_losses))
+            print('update.......................... learning_rate=', learning_rate.eval(),'sum(Epoches_losses)/len(Epoches_losses):',sum(Epoches_losses)/len(Epoches_losses))
+            # print('step % (len(train_set)//batch_num + 1):',step % (len(train_set)//batch_num + 1))
             # if len(previous_losses) > learning_rate_threshold and loss_ret < min(previous_losses[-learning_rate_threshold:]):
             #     sess.run(learning_rate_increase_op)
             previous_losses.append(sum(Epoches_losses)/len(Epoches_losses))
@@ -372,7 +379,7 @@ def predict():
     预测过程
     """
     with tf.Session() as sess:
-        encoder_inputs, decoder_inputs, target_weights, outputs, loss, update, saver, learning_rate_decay_op, learning_rate_increase_op, learning_rate = get_model(feed_previous=True)
+        encoder_inputs, decoder_inputs, target_weights, outputs, loss, update, saver, learning_rate_init,learning_rate_decay_op, learning_rate_increase_op, learning_rate = get_model(feed_previous=True)
         saver.restore(sess, model_path)
         sys.stdout.write("> ")
         sys.stdout.flush()

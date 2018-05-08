@@ -38,14 +38,6 @@ from nltk import word_tokenize, sent_tokenize
 # please put the corpus at this path
 # data_path = 'data/output1.bz2'
 # output_path = 'models/model1'
-unique_seqs = {}
-
-batch_size = 256
-threshold = 10
-num_to_stop = 7
-# batch_size = 32
-# threshold = 1
-# num_to_stop = 7
 
 question_seqs = []
 answer_seqs = []
@@ -73,18 +65,10 @@ def get_train_set():
                         answer_seq.append(word)
                 else:
                     break
-                if str(question_seq) not in unique_seqs:
-                    unique_seqs[str(question_seq)] = 1
-                    question_seqs.append(question_seq)
-                    answer_seqs.append(question_seq)
-                if str(answer_seq) not in unique_seqs:
-                    unique_seqs[str(answer_seq)] = 1
-                    question_seqs.append(answer_seq)
-                    answer_seqs.append(answer_seq)
+                question_seqs.append(question_seq)
+                answer_seqs.append(answer_seq)
 
-
-
-def init_seq(input_file = './corpus.segment'):
+def init_seq(input_file = './corpus.segment.pair'):
     """读取切好词的文本文件，加载全部词序列
     """
     file_object = open(input_file, 'r')
@@ -94,24 +78,23 @@ def init_seq(input_file = './corpus.segment'):
         answer_seq = []
         line = file_object.readline()
         if line:
-            line = line.strip()
-            for word in line.split(' '):
+            line_pair = line.split('|')
+            line_question = line_pair[0]
+            line_answer = line_pair[1]
+            line_question = line_question.strip()
+            line_answer = line_answer.strip()
+            for word in line_question.split(' '):
                 question_seq.append(word)
-
+            for word in line_answer.split(' '):
+                answer_seq.append(word)
         else:
             break
-        if str(question_seq) not in unique_seqs:
-            unique_seqs[str(question_seq)] = 1
-            question_seqs.append(question_seq)
-            answer_seqs.append(question_seq)
-        # question_seqs.append(answer_seq)
-        # answer_seqs.append(answer_seq)
+        question_seqs.append(question_seq)
+        answer_seqs.append(answer_seq)
     file_object.close()
 
 get_train_set()
-print('len(unique_seqs):',len(unique_seqs))
-init_seq()
-print('len(unique_seqs):',len(unique_seqs))
+# init_seq()
 X = question_seqs
 y = answer_seqs
 # for i in range(30):
@@ -194,7 +177,7 @@ load_vectors()
 embeddings_index = word_vector_dict
 
 missing_words = 0
-
+threshold = 40
 # add the words to this string and print
 missing_words_list = []
 
@@ -319,8 +302,8 @@ def unk_counter(sentence):
 
 # parameters for batch parser
 # set the length according to the 90% and 95% quantile
-max_X_length = 12
-max_y_length = 12
+max_X_length = 6
+max_y_length = 6
 min_length = 1
 
 # drop the sample if we got too much unknown words
@@ -347,8 +330,8 @@ for length in range(1, max_X_length):
             unk_counter(int_X[i]) <= unk_X_threshold and
             length == len(int_X[i])
            ):
-            # if invalid_sample(int_X[i]):
-            #     continue
+            if invalid_sample(int_X[i]):
+                continue
             sorted_y.append(int_y[i])
             sorted_X.append(int_X[i])
 
@@ -371,7 +354,7 @@ learning_rate = 0.001
 learning_rate_decay = 0.95
 min_learning_rate = 0.00005
 epochs = 100
-
+batch_size = 256
 keep_probability = 0.75
 # 1 - GradientDescentOptimizer
 # 2 - AdamOptimizer
@@ -388,10 +371,6 @@ rnn_dim = 512
 encoder_forget_bias = 1.0
 decoder_forget_bias = 1.0
 
-encoder_type = 1
-# 1 - uni-directional layers  单向层
-# 2 - bidirectional_dynamic_rnn
-
 # 1 - tf.random_uniform_initializer
 # 2 - tf.truncated_normal_initializer
 # 3 - tf.orthogonal_initializer
@@ -400,13 +379,13 @@ initializer_type = 3
 # 1 - Relu
 # 2 - tanh
 activation = None
-num_layers = 2
+num_layers = 1
 
 # Hyperparams for attentions
 # 1 - tf.contrib.seq2seq.BahdanauAttention()
 # 2 - tf.contrib.seq2seq.LuongAttetion()
 # 3 - no attention
-attention_type = 3
+attention_type = 1
 
 # others
 # gradient clipping
@@ -423,11 +402,11 @@ clip_value_min = -3
 clip_value_max = 3
 clip_norm = 5
 
-model_path = "./models/autoencoder/best_model.ckpt"
-logdir = '/tmp/tensorflow/autoencoder_logs/'
+model_path = "./models/bigcorpus_compare/best_model.ckpt"
+logdir = '/tmp/tensorflow/my_seq2seq_bigcorpus_logs/'
 difstr = time.strftime('%Y-%m-%d %H:%M:%S',time.localtime(time.time()))
 logdir += difstr
-# tensorboard --logdir=/tmp/tensorflow/autoencoder_logs/ --port=16006
+# tensorboard --logdir=/tmp/tensorflow/my_seq2seq_bigcorpus_logs/ --port=26006
 
 def model_inputs():
 
@@ -447,7 +426,8 @@ def process_decoding_input(target_data, word_to_int, batch_size):
     decoder_input = tf.concat([tf.fill([batch_size, 1], word_to_int['<GO>']), ending], axis=1)
     return decoder_input
 
-def get_a_cell(rnn_dim, forget_bias, keep_prob, cell_type):
+def encoding_layer(rnn_dim, sequence_length, num_layers, rnn_inputs, keep_prob):
+
     # choose the initializer to use in cells
     if initializer_type == 1:
         initializer = tf.random_uniform_initializer(1.0, 1.0, seed=2)
@@ -457,9 +437,9 @@ def get_a_cell(rnn_dim, forget_bias, keep_prob, cell_type):
         initializer = tf.orthogonal_initializer(gain=1.0, seed=2)
 
     # choose the cell type to use
-    if cell_type == 1:
+    if encoder_cell_type == 1:
         tf_cell = tf.contrib.rnn.RNNCell(rnn_dim)
-    elif cell_type == 2:
+    elif encoder_cell_type == 2:
         tf_cell = tf.contrib.rnn.GRUCell(rnn_dim,
             kernel_initializer=initializer,
             activation=activation)
@@ -468,41 +448,40 @@ def get_a_cell(rnn_dim, forget_bias, keep_prob, cell_type):
             initializer=initializer,
             forget_bias=1.0,
             activation=activation)
-    cell = tf_cell
-    cell = tf.contrib.rnn.DropoutWrapper(cell,
-                        input_keep_prob = keep_prob)
-    return cell
-
-
-def encoding_layer(rnn_dim, sequence_length, num_layers, rnn_inputs, keep_prob):
 
     # multilayered bidirecitonal RNN
     # https://stackoverflow.com/questions/44483560/multilayered-bi-directional-encoder-for-seq2seq-in-tensorflow
     next_inputs = rnn_inputs
     output_list = []
-    encoder_state_list = []
-    with tf.variable_scope('encoder'):
-        cell_list = []
-        for i in range(num_layers):
-            single_cell = get_a_cell(rnn_dim, 1.0, keep_prob, encoder_cell_type)
-            cell_list.append(single_cell)
-        if len(cell_list) == 1:
-            # Single layer.
-            cell = cell_list[0]
-        else:  # Multi layers
-            cell = tf.contrib.rnn.MultiRNNCell(cell_list)
+    for layer in range(num_layers):
+        with tf.variable_scope('encoder_{}'.format(layer)):
+            cell_fw = tf_cell
+            # add dropout wrapper
+            cell_fw = tf.contrib.rnn.DropoutWrapper(cell_fw,
+                                input_keep_prob = keep_prob)
+            cell_bw = tf_cell
+            cell_bw = tf.contrib.rnn.DropoutWrapper(cell_bw,
+                                input_keep_prob = keep_prob)
+
+            # add bidirectional wrapper
+            (encoder_output_fw, encoder_output_bw), encoder_state = tf.nn.bidirectional_dynamic_rnn(cell_fw,
+                                                                    cell_bw,
+                                                                    next_inputs,
+                                                                    sequence_length,
+                                                                    dtype=tf.float32)
+            # update the next_inputs from the output of current layer
+            next_inputs = tf.concat([encoder_output_fw,encoder_output_bw], axis=2)
+            output_list.append(next_inputs)
 
     # only take last one as encoder output
     # encoder_output = next_inputs
     # take all the outputs as encoder output
-    encoder_output, encoder_state = tf.nn.dynamic_rnn(
-                                     cell,
-                                     next_inputs,
-                                     sequence_length=sequence_length,
-                                     dtype=tf.float32)
+    if num_layers == 1:
+        encoder_output = next_inputs
+    else:
+        encoder_output = tf.concat(output_list, axis=2)
 
     return encoder_output, encoder_state
-
 
 # the decoding layer used in training
 def training_decoding_layer(decoder_embed_input, y_length, decoder_cell, initial_state,
@@ -559,27 +538,57 @@ def decoding_layer(decoder_embed_input, embeddings, encoder_output, encoder_stat
                    vocab_size, X_length, y_length, max_y_length, rnn_dim, word_to_int,
                    keep_prob, batch_size, num_layers):
     '''Create the decoding cell and attention for the training and inference decoding layers'''
+    # choose the initializer to use in cells
+    if initializer_type == 1:
+        initializer = tf.random_uniform_initializer(1.0, 1.0, seed=2)
+    elif initializer_type == 2:
+        initializer = tf.truncated_normal_initializer(1.0, 1.0, seed=2)
+    else:
+        initializer = tf.orthogonal_initializer(gain=1.0, seed=2)
+
+    # choose the cell type to use
+    if decoder_cell_type == 1:
+        tf_cell = tf.contrib.rnn.RNNCell(rnn_dim)
+    elif decoder_cell_type == 2:
+        tf_cell = tf.contrib.rnn.GRUCell(rnn_dim,
+            kernel_initializer=initializer,
+            activation=activation)
+    else:
+        tf_cell = tf.contrib.rnn.LSTMCell(rnn_dim,
+            initializer=initializer,
+            forget_bias=1.0,
+            activation=activation)
 
     # create cells for decoder
     # for layer in range(num_layers):
     with tf.variable_scope('decoder'):
-        cell_list = []
-        for i in range(num_layers):
-            single_cell = get_a_cell(rnn_dim, 1.0, keep_prob, decoder_cell_type)
-            cell_list.append(single_cell)
-        if len(cell_list) == 1:
-            # Single layer.
-            decoder_cell = cell_list[0]
-        else:  # Multi layers
-            decoder_cell = tf.contrib.rnn.MultiRNNCell(cell_list)
+        lstm = tf_cell
+        decoder_cell = tf.contrib.rnn.DropoutWrapper(lstm,
+                                                     input_keep_prob = keep_prob)
 
     output_layer = Dense(vocab_size,
                          kernel_initializer = tf.truncated_normal_initializer(mean = 0.0, stddev=0.25))
 
+    # # implements Bahdanau-style (additive) attetion
+    if attention_type == 1:
+        attn_mech = tf.contrib.seq2seq.BahdanauAttention(rnn_dim,
+                                                         encoder_output,
+                                                         X_length,
+                                                         normalize=False,
+                                                         name='BahdanauAttention')
+    else:
+        #implements Luong-style(multiplication) attention
+        attn_mech = tf.contrib.seq2seq.LuongAttention(rnn_dim,
+                                                      encoder_output,
+                                                      X_length,
+                                                      name='LuongAttention')
+    # Wraps RNNCells with attention
+    decoder_cell = tf.contrib.seq2seq.AttentionWrapper(decoder_cell,
+                                                       attn_mech,
+                                                       rnn_dim)
 
     # initial_cell_state = the ending state of encoder
-    # initial_state = decoder_cell.zero_state(batch_size, tf.float32).clone(cell_state=encoder_state[0])
-    initial_state = encoder_state
+    initial_state = decoder_cell.zero_state(batch_size, tf.float32).clone(cell_state=encoder_state[0])
 
     with tf.variable_scope("decode"):
         #这里是用来看embedding来源的，只是个注释
@@ -640,7 +649,7 @@ def seq2seq_model(input_data, target_data, keep_prob, X_length, y_length, max_y_
                                                         batch_size,
                                                         num_layers)
 
-    return training_logits, inference_logits, encoder_state
+    return training_logits, inference_logits
 
 def pad_sentence_batch(sentences):
     max_sentence = max([len(sentence) for sentence in sentences])
@@ -787,7 +796,7 @@ def model_build():
     #                                                   word_to_int,
     #                                                   batch_size)
 
-    training_logits, inference_logits, encoder_state = seq2seq_model(input_data,
+    training_logits, inference_logits = seq2seq_model(input_data,
                                                       targets,
                                                       keep_prob,
                                                       X_length,
@@ -801,7 +810,6 @@ def model_build():
 
     training_logits = tf.identity(training_logits.rnn_output, name='logits')
     inference_logits = tf.identity(inference_logits.sample_id, name='predictions')
-    encoder_state = tf.identity(encoder_state, name='encoder_state')
 
     # Create the weights for sequence_loss
     masks = tf.sequence_mask(y_length, max_y_length, dtype=tf.float32, name='mask')
@@ -829,7 +837,7 @@ def model_build():
         ###################################
     merged_summary_op = tf.summary.merge_all()
     saver = tf.train.Saver(tf.global_variables())
-    return training_logits, inference_logits, train_op, cost, merged_summary_op, input_data, targets, lr, y_length, X_length, keep_prob, saver, encoder_state
+    return training_logits, inference_logits, train_op, cost, merged_summary_op, input_data, targets, lr, y_length, X_length, keep_prob, saver
 
 
 
@@ -843,11 +851,23 @@ def train():
 
     # cut the dataset to training set
     # start = 200000
-    # # end = start + 50000
-    # sorted_y_short = sorted_y[start:end]
-    # sorted_X_short = sorted_X[start:end]
-    sorted_y_short = sorted_y
-    sorted_X_short = sorted_X
+    # end = start + 64552
+    # start = 0
+    # end = 200000
+    start = 0
+    end = start + 264552
+    #算上1999条小数据集对话
+    # number of sorted input 266457
+    # number of sorted output 266457
+    #不算上1999条小数据集对话
+    # number of sorted input 264552
+    # number of sorted output 264552
+
+
+    sorted_y_short = sorted_y[start:end]
+    sorted_X_short = sorted_X[start:end]
+    # sorted_y_short = sorted_y
+    # sorted_X_short = sorted_X
 
     print(("The shortest X length:", len(sorted_X_short[0])))
     print(("The longest X length:",len(sorted_X_short[-1])))
@@ -856,7 +876,7 @@ def train():
     display_step = 20 # Check training loss after every 20 batches
     stop_early = 0
     # If the update loss does not decrease in num_to_stop consecutive update checks, stop training
-
+    num_to_stop = 151
 
     per_epoch = 3
 
@@ -875,11 +895,11 @@ def train():
     train_graph = tf.Graph()
     with tf.Session(graph=train_graph) as sess:
     # with tf.Session() as sess:
-        training_logits, inference_logits, train_op, cost, merged_summary_op, input_data, targets, lr, y_length, X_length, keep_prob, saver, encoder_state = model_build()
+        training_logits, inference_logits, train_op, cost, merged_summary_op, input_data, targets, lr, y_length, X_length, keep_prob, saver = model_build()
 
         sess.run(tf.global_variables_initializer())
-        saver.restore(sess, model_path)   #换这句可以接着上次的训练
-        print('get model successfully.....')
+        # saver.restore(sess, model_path)   #换这句可以接着上次的训练
+        # print('get model successfully.....')
 
         summary_writer = tf.summary.FileWriter(logdir, sess.graph)
         ####################################################
@@ -980,18 +1000,50 @@ def predict():
 
     # Create your own review or use one from the dataset
     # input_sentence = "Do you like Joshua?"
-    # input_sentence = "世界上最美的人是谁"
-    # Response Words: 全世界 最好 的 作者 是 谁 <EOS>
-    # Response Words: 世界 上 最美 的 人 是 谁 <EOS>
-    input_sentence = "你这家伙今天怎么样"
-    # Response Words: 我 好想你 啊 <EOS>
-    # input_sentence = "你是屌丝鸡"
-    # Response Words: 你 是 屌丝 鸡 <EOS>
-    # input_sentence = '有条狗,该不该日'
-    # Response Words: 有条 狗 , 该不该 日 <EOS>
-    # input_sentence = '必须要给点厉害啊'
-    # input_sentence = '怎么个厉害法'
-    # input_sentence = '他打羽毛球很厉害！'
+    input_sentence = "世界上最美的人是谁"
+    # Response Words: 是 世界 上 最 忠诚 的 人 <EOS>
+    # Response Words: 小通 啊 ， 必须 的 ， 远在天边 ， 近在眼前 ！ <EOS>
+    # input_sentence = "我好想你啊"
+    # Response Words: 会 分手 <EOS>
+    # input_sentence = "无聊啊，找事做啊"
+    # Response Words: 就是 每天 重复 <EOS>
+    # input_sentence = "你是谁啊"
+    # Response Words: 我 是 你 我 的 [ robot _ name ] 机器人 <EOS>
+
+    # input_sentence = "我好困怎么办"
+    # Response Words: 好困 吧 ， 睡醒 就 休息 了 呢 … … <EOS>
+    # Response Words: 好困 ， 休息 ， 陪 你们 聊天 吧 <EOS>
+    # input_sentence = "我想出去玩"
+    # Response Words: 屌丝 不哭 ， 站 起来 撸 <EOS>
+    # Response Words: 出去 玩 啊 <EOS>
+    # input_sentence = "你有男朋友没"
+    # Response Words: 你 觉得 呢 <EOS>
+    # Response Words: 你 觉得 呢 <EOS>
+    # input_sentence = "谢谢么么睡觉吧爱你"
+    # Response Words: 害羞 <EOS>
+    # Response Words: = 。 = <EOS>
+    # input_sentence = "然后炖了你"
+    # Response Words: 人家 脱毛 以后 会 害羞 的 <EOS>
+    # input_sentence = "我要炖了你"
+    # Response Words: 主人 手下留情 啊 … … <EOS>
+    # Response Words: 斯溜 … … 斯溜 <EOS>
+    # input_sentence = "你家在哪里呢"
+    # Response Words: 在 你 深深 的 脑海 里 呢 <EOS>
+    # Response Words: 在 这里 呢 <EOS>
+    # input_sentence = "你知道东京在哪吗"
+    # Response Words: = 。 = <EOS>
+    # Response Words: dxfhj ， 没 问题 。 <EOS>
+    # input_sentence = "你寂寞无聊时会干什么"
+    # Response Words: 主人 ， 我 陪 我 聊天 <EOS>
+    # Response Words: 我 是 小 公主 ， 我 是 只 程序 的 <EOS>
+
+
+
+
+
+
+
+
 
     text = text_to_seq(input_sentence)
     # random = np.random.randint(0,len(clean_texts))
@@ -999,12 +1051,12 @@ def predict():
     # text = text_to_seq(clean_texts[random])
 
     # model_path = "./models/best_model"
-    # model_path = "./best_model/models/best_model"
+    # model_path = "./best_model/best_bigcorpus/bigcorpus"
 
     loaded_graph = tf.Graph()
     with tf.Session(graph=loaded_graph) as sess:
     # with tf.Session() as sess:
-        training_logits, inference_logits, train_op, cost, merged_summary_op, input_data, targets, lr, y_length, X_length, keep_prob, saver, encoder_state = model_build()
+        training_logits, inference_logits, train_op, cost, merged_summary_op, input_data, targets, lr, y_length, X_length, keep_prob, saver = model_build()
         # Load saved model
         saver.restore(sess, model_path)
 
@@ -1012,24 +1064,13 @@ def predict():
 
 
         #Multiply by batch_size to match the model's input parameters
-        answer_logits, auto_encoder = sess.run([inference_logits, encoder_state], {input_data: [text]*batch_size,
+        answer_logits = sess.run(inference_logits, {input_data: [text]*batch_size,
                                           y_length: [np.random.randint(35,40)],
                                           X_length: [len(text)]*batch_size,
-                                          keep_prob: 1.0})
-        test_answer_logits = answer_logits
-        answer_logits = answer_logits[0]
-        # auto_encoder  = auto_encoder[0]
+                                          keep_prob: 1.0})[0]
 
     # Remove the paddings
     pad = word_to_int["<PAD>"]
-    # print('auto_encoder[:,0,:]:',auto_encoder[:,0,:])
-    # print('type of auto_encoder[:,0,:]:',type(auto_encoder[:,0,:]))
-    # print('shape of auto_encoder[:,0,:]:',auto_encoder[:,0,:].shape)
-    print('type of auto_encoder:',type(auto_encoder))
-    print('shape of auto_encoder:',auto_encoder.shape)
-    print('type of test_answer_logits:',type(test_answer_logits))
-    print('shape of test_answer_logits:',test_answer_logits.shape)
-
 
     print(('Original Text:', input_sentence))
 
@@ -1052,7 +1093,8 @@ def predict():
 
 ##################################################################################
 
-# train()
+train()
+
 predict()
 ########################################################
 
