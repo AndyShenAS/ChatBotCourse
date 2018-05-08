@@ -1037,7 +1037,7 @@ def predict():
     # input_sentence = "你寂寞无聊时会干什么"
     # Response Words: 主人 ， 我 陪 我 聊天 <EOS>
     # Response Words: 我 是 小 公主 ， 我 是 只 程序 的 <EOS>
-    input_sentence = "你这家伙今天怎么样"
+    # input_sentence = "你这家伙今天怎么样"
     # Response Words: 又 不光 又 聪明 的 还 你 就是 我 ！ <EOS>
 
 
@@ -1096,7 +1096,7 @@ def predict():
 
 ##################################################################################
 
-train()
+# train()
 
 predict()
 ########################################################
