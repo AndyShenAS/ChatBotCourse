@@ -898,8 +898,8 @@ def train():
         training_logits, inference_logits, train_op, cost, merged_summary_op, input_data, targets, lr, y_length, X_length, keep_prob, saver = model_build()
 
         sess.run(tf.global_variables_initializer())
-        # saver.restore(sess, model_path)   #换这句可以接着上次的训练
-        # print('get model successfully.....')
+        saver.restore(sess, model_path)   #换这句可以接着上次的训练
+        print('get model successfully.....')
 
         summary_writer = tf.summary.FileWriter(logdir, sess.graph)
         ####################################################
@@ -1003,6 +1003,7 @@ def predict():
     input_sentence = "世界上最美的人是谁"
     # Response Words: 是 世界 上 最 忠诚 的 人 <EOS>
     # Response Words: 小通 啊 ， 必须 的 ， 远在天边 ， 近在眼前 ！ <EOS>
+    # Response Words: 大 傻 <EOS>
     # input_sentence = "我好想你啊"
     # Response Words: 会 分手 <EOS>
     # input_sentence = "无聊啊，找事做啊"
@@ -1079,11 +1080,11 @@ def predict():
     print(('  Word Ids:    {}'.format([i for i in text])))
     print(('  Input Words: {}'.format(" ".join([int_to_word[i] for i in text]))))
 
-    print('\nSummary')
-    print(('  Word Ids:       {}'.format([i for i in answer_logits if i != pad])))
-    print(('  Response Words: {}'.format(" ".join([int_to_word[i] for i in answer_logits if i != pad]))))
+    # print('\nSummary')
+    # print(('  Word Ids:       {}'.format([i for i in answer_logits if i != pad])))
+    # print(('  Response Words: {}'.format(" ".join([int_to_word[i] for i in answer_logits if i != pad]))))
 
-    print('\nSummary1')
+    print('\nSummary')
     print(('  Word Ids:       {}'.format([i for i in answer_logits])))
     print(('  Response Words: {}'.format(" ".join([int_to_word[i] for i in answer_logits]))))
 
