@@ -48,6 +48,9 @@ question_path = 'data/question.all.norepeat.segment'
 answer_path = 'data/answer.all.norepeat.segment'
 #一定要预处理，把重复问题去掉，不然loss一直降不下来！！！
 
+query_ques = []
+query_ans = []
+
 
 def get_train_set():
     with open(question_path, 'r') as question_file:
@@ -60,6 +63,8 @@ def get_train_set():
                 if question and answer:
                     line_question = question.strip()
                     line_answer = answer.strip()
+                    query_ques.append(line_question)
+                    query_ans.append(line_answer)
                     for word in line_question.split(' '):
                         question_seq.append(word)
                     for word in line_answer.split(' '):
@@ -80,7 +85,8 @@ y = answer_seqs
 #     print('answer:',y[random_i])
 y_clean = y
 X_clean = X
-
+print('number of query_ques', len(query_ques))
+print('number of query_ans', len(query_ans))
 print('number of original input', len(X_clean))
 print('number of original output', len(y_clean))
 count = 0
@@ -314,6 +320,8 @@ sorted_X = []
 
 
 count_invalid = 0
+count_index = 0
+index_inquery = []
 for length in range(1, max_X_length):
     for i, sentence in enumerate(int_y):
         if (len(int_y[i]) >= min_length and
@@ -328,12 +336,14 @@ for length in range(1, max_X_length):
                 # print('invalid answer:',[int_to_word[id] for id in int_y[i]])
                 count_invalid += 1
                 continue
+            index_inquery.append(i)
             sorted_y.append(int_y[i])
             sorted_X.append(int_X[i])
+            count_index += 1
 print('count_invalid:',count_invalid)
 print('number of sorted input', len(sorted_X))
 print('number of sorted output', len(sorted_y))
-
+print('number of index_inquery', len(index_inquery))
 # print(sorted_X[:100])
 # print(sorted_y[:100])
 
@@ -345,6 +355,51 @@ for i in range(30):
     print(random_i)
     print('question:',[int_to_word[id] for id in sorted_X[random_i]])
     print('answer:',[int_to_word[id] for id in sorted_y[random_i]])
+    print('question_inquery:',query_ques[index_inquery[random_i]])
+    print('answer_inquery:',query_ans[index_inquery[random_i]])
+
+def save_train_test():
+    train_ques = ''
+    train_ans = ''
+    test_ques = ''
+    test_ans = ''
+    train_test_index = {}
+    train_index = []
+    test_index = []
+    for i in range(2000):
+        random_i = random.randint(0,len(sorted_X))
+        test_ques += query_ques[index_inquery[random_i]] + '\n'
+        test_ans += query_ans[index_inquery[random_i]] + '\n'
+        if random_i in test_index:
+            print('repeat random index...',random_i)
+        test_index.append(random_i)
+    print('len(test_index)',len(test_index))
+    for i in range(len(sorted_X)):
+        if i in test_index:
+            continue
+        train_index.append(i)
+        train_ques += query_ques[index_inquery[i]] + '\n'
+        train_ans += query_ans[index_inquery[i]] + '\n'
+    train_test_index['train'] = train_index
+    train_test_index['test'] = test_index
+    # f = open('./data/train.question','w')
+    # f.write(train_ques)
+    # f.close()
+    # f = open('./data/train.answer','w')
+    # f.write(train_ans)
+    # f.close()
+    # f = open('./data/test.question','w')
+    # f.write(test_ques)
+    # f.close()
+    # f = open('./data/test.answer','w')
+    # f.write(test_ans)
+    # f.close()
+    # f = open('./data/train_test.index','w')
+    # f.write(str(train_test_index))
+    # f.close()
+
+
+save_train_test()
 
 
 

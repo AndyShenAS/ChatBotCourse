@@ -116,6 +116,12 @@ def pca_transfer(dic):
     pca = PCA(n_components=0.95)
     pca.fit(globalMean_minmax)
     newData_PCA = pca.transform(globalMean_minmax)
+    print(newData_PCA)
+    # print(words)
+    print('PCA result......')
+    print(pca.explained_variance_ratio_)
+    print(pca.explained_variance_)
+    print(pca.n_components_)
     #setting plt
     plt.title('中文词向量')
     # plt.xlim(xmax=6,xmin=-6)
@@ -130,12 +136,6 @@ def pca_transfer(dic):
     # plt.legend(loc='upper center', shadow=True, fontsize='x-large')
     plt.grid(True)
     plt.show()
-    print(newData_PCA)
-    # print(words)
-    print('PCA result......')
-    print(pca.explained_variance_ratio_)
-    print(pca.explained_variance_)
-    print(pca.n_components_)
 
 
 

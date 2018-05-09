@@ -85,10 +85,11 @@ def pca_transfer(dic):
     #setting plt
     # plt.xlim(xmax=6,xmin=-6)
     # plt.ylim(ymax=6,ymin=-6)
+    plt.title('中文句子向量',fontsize=18)
     plt.xlabel("width",fontsize=18, family='serif', style='italic')
     plt.ylabel("height",fontsize=18, family='serif', style='italic')
     for i in range(len(test_sentences)):
-        plt.text(newData_PCA[i][0],newData_PCA[i][1]+0.2,test_sentences[i], ha='right', wrap=True, fontsize=16)
+        plt.text(newData_PCA[i][0],newData_PCA[i][1]+0.5,test_sentences[i], ha='right', wrap=True, fontsize=15)
         plt.scatter(newData_PCA[i][0],newData_PCA[i][1], color='', marker='o', edgecolors='r', s=60)
     # plt.legend(loc='upper center', shadow=True, fontsize='x-large')
     plt.grid(True)

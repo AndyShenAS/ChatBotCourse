@@ -993,6 +993,7 @@ def predict(input_sentence = '我肚子好饿饿哦'):
     # input_sentence = '怎么个厉害法'
     # input_sentence = '他打羽毛球很厉害！'
     # input_sentence = '我肚子好饿饿哦'
+    # input_sentence = '我可真是喜欢你'
 
     text = text_to_seq(input_sentence)
     # random = np.random.randint(0,len(clean_texts))
@@ -1059,20 +1060,24 @@ def predict(input_sentence = '我肚子好饿饿哦'):
 
 ##################################################################################
 
-train()
-predict()
+# train()
+# predict()
 ########################################################
 # sentences = ['我喜欢你','我爱你','我讨厌你','我恨你']
+# sentences = ['我喜欢你','我爱你','我讨厌你','我恨你']
+# sentences = ['我可真是喜欢你','我可真疼你','我特别欣赏你','我很爱慕你','我好讨厌你','我可真恨死你了','我无法原谅你','我无法面对你','我为你感到害臊']
+# sentences = ['我好难过','我感觉很抑郁','我现在很寂寞很孤独','我想要有人关心我','我好开心','我感觉特别兴奋','我现在很满足很自由','我感受到足够多的幸福']
 
 
 # sentences = ['我喜欢你','我爱你','我讨厌你','我恨你','你喜欢我','你爱我','你讨厌我','你恨我']
-# sentences_dic = {}
-# for sentence in sentences:
-#     sentences_dic[sentence] = predict(sentence)
-#
-# f = open('./data/sentence_vectors.dic','w')
-# f.write(str(sentences_dic))
-# f.close()
+sentences = ['我喜欢你','我爱你','我羡慕你','你喜欢我','你爱我','你羡慕我']
+sentences_dic = {}
+for sentence in sentences:
+    sentences_dic[sentence] = predict(sentence)
+
+f = open('./data/sentence_vectors.dic','w')
+f.write(str(sentences_dic))
+f.close()
 
 
 
