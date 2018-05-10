@@ -867,7 +867,7 @@ def train():
     display_step = 20 # Check training loss after every 20 batches
     stop_early = 0
     # If the update loss does not decrease in num_to_stop consecutive update checks, stop training
-    num_to_stop = 151
+    num_to_stop = 7
 
     per_epoch = 3
 
@@ -889,8 +889,8 @@ def train():
         training_logits, inference_logits, train_op, cost, merged_summary_op, input_data, targets, lr, y_length, X_length, keep_prob, saver = model_build()
 
         sess.run(tf.global_variables_initializer())
-        # saver.restore(sess, model_path)   #换这句可以接着上次的训练
-        # print('get model successfully.....')
+        saver.restore(sess, model_path)   #换这句可以接着上次的训练
+        print('get model successfully.....')
 
         summary_writer = tf.summary.FileWriter(logdir, sess.graph)
         ####################################################
@@ -996,6 +996,7 @@ def predict():
     # Response Words: 是 你 老婆 ！ <EOS>
     # Response Words: 小通 啊 ， 必须 的 ， 远在天边 ， 近在眼前 ！ <EOS>
     # Response Words: 是 你 老婆 ！ 宝宝 ！ <EOS>
+    # Response Words: 宝宝 最棒 <EOS>
     # input_sentence = "我好想你啊"
     # Response Words: 会 分手 <EOS>
     # Response Words: 我 也 想 你 啊 <EOS>
@@ -1033,6 +1034,16 @@ def predict():
     # Response Words: 我 是 小 公主 ， 我 是 只 程序 的 <EOS>
     # input_sentence = "你这家伙今天怎么样"
     # Response Words: 又 不光 又 聪明 的 还 你 就是 我 ！ <EOS>
+    input_sentence = '我才是最美的'
+    input_sentence = '你几岁l'
+    # Response Words: 你 猜 啊 ， 嘻嘻 <EOS>
+    input_sentence = '你真米有用'
+    input_sentence = '呜呜一个给大爷听听'
+    # Response Words: 大爷 先给 奴家 乐 一个 <EOS>
+
+
+
+
 
 
 
@@ -1090,7 +1101,7 @@ def predict():
 
 ##################################################################################
 
-train()
+# train()
 
 predict()
 ########################################################
