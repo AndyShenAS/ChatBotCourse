@@ -28,75 +28,30 @@ wordToken = word_token.WordToken()
 log_dir = '/tmp/tensorflow/old_seq2seq_logs/'
 difstr = time.strftime('%Y-%m-%d %H:%M:%S',time.localtime(time.time()))
 log_dir += difstr
-option = 2
 
-if option == 1:
-    question_path = './samples/backup/question.segment'
-    answer_path = './samples/backup/answer.segment'
-    train_set_modify = 0
-    model_path = './model/demo'
-    batchNUM = 1000
-    learning_rate_threshold = 5
-    min_freq = 1
-
-    # 输入序列长度
-    input_seq_len = 7
-    # 输出序列长度
-    output_seq_len = 9
-    # LSTM神经元size
-    size = 10
-    # 初始学习率
-    init_learning_rate = 0.01
-    Epoches = 500
-    # step= 49990 loss= 0.57324296 learning_rate= 0.007855157
-    # step= 49990 loss= 0.5078533 learning_rate= 0.004174552
-    # step= 99990 loss= 0.45555034 learning_rate= 0.0017970073
-    # step= 199990 loss= 0.4141012 learning_rate= 0.0010611147
-    #step= 990 loss= 0.41393718 learning_rate= 0.0010611147
+# question_path = './samples/question.big'
+# answer_path = './samples/answer.big'
+question_words_path = '../chatbotv2/data/question.all.norepeat.segment'
+answer_words_path = '../chatbotv2/data/answer.all.norepeat.segment'
+question_path = '../chatbotv2/data/train.question'
+answer_path = '../chatbotv2/data/train.answer'
+model_path = './model/bigcorpus/demo'
+batchNUM = 4096
+learning_rate_threshold = 8
+min_freq = 8
+# 输入序列长度
+input_seq_len = 11
+# 输出序列长度
+output_seq_len = 13
+# LSTM神经元size
+size = 512
+embedding_size = 204
+# 初始学习率
+init_learning_rate = 0.001
+Epoches = 100
 
 
-elif option == 2:
-    # question_path = './samples/question.big'
-    # answer_path = './samples/answer.big'
-    question_path = './samples/question.big.norepeat.segment'
-    answer_path = './samples/answer.big.norepeat.segment'
-    train_set_modify = 0
-    model_path = './model/bigcorpus/demo'
-    batchNUM = 4096
-    learning_rate_threshold = 8
-    min_freq = 40
-    # 输入序列长度
-    input_seq_len = 5
-    # 输出序列长度
-    output_seq_len = 7
-    # LSTM神经元size
-    size = 204
-    # 初始学习率
-    init_learning_rate = 0.001
-    Epoches = 100
 
-
-elif option == 3:
-    question_path = './samples/backup/question'
-    answer_path = './samples/backup/answer'
-    model_path = './model/autoencoder/demo'
-    train_set_modify = 1
-    batchNUM = 256
-    learning_rate_threshold = 5
-    min_freq = 1
-    # 输入序列长度
-    input_seq_len = 7
-    # 输出序列长度
-    output_seq_len = 9
-    # LSTM神经元size
-    size = 10
-    # 初始学习率
-    # init_learning_rate = 1
-    init_learning_rate = 0.0070696413
-    Epoches = 50
-    # step= 9990 loss= 0.55949193 learning_rate= 0.04239112
-    # step= 49990 loss= 0.26494506 learning_rate= 0.009697726
-    # step= 49990 loss= 0.18960254 learning_rate= 0.0070696413
 
 
 
@@ -104,7 +59,7 @@ elif option == 3:
 
 
 # 放在全局的位置，为了动态算出num_encoder_symbols和num_decoder_symbols
-max_token_id = wordToken.load_segment_file_list([question_path, answer_path], min_freq)
+max_token_id = wordToken.load_segment_file_list([question_words_path, answer_words_path], min_freq)
 # max_token_id = wordToken.load_file_list(['./samples/question.big', './samples/answer.big'], min_freq)
 num_encoder_symbols = max_token_id + 5
 num_decoder_symbols = max_token_id + 5
@@ -156,18 +111,8 @@ def get_train_set():
                     answer_id_list = get_id_list_from_seq(answer_seq)
                     if len(question_id_list) > 0 and len(answer_id_list) > 0 and len(question_id_list) <= input_seq_len and len(answer_id_list) <= output_seq_len-2:
                         if len(question_seq) - len(question_id_list) < 2 and len(answer_seq) - len(answer_id_list) < 1:
-                            if train_set_modify == 1:
-                                print('yes')
-                                question_id_list_noEOS = question_id_list[:]
-                                question_id_list.append(EOS_ID)
-                                train_set.append([question_id_list_noEOS, question_id_list])
-                                answer_id_list_noEOS = answer_id_list[:]
-                                answer_id_list.append(EOS_ID)
-                                train_set.append([answer_id_list_noEOS, answer_id_list])
-                            else:
-                                answer_id_list.append(EOS_ID)
-                                train_set.append([question_id_list, answer_id_list])
-
+                            answer_id_list.append(EOS_ID)
+                            train_set.append([question_id_list, answer_id_list])
                 else:
                     break
 
@@ -272,17 +217,33 @@ def get_model(feed_previous=False):
 
     cell = tf.contrib.rnn.BasicLSTMCell(size)
 
+    w_t = tf.get_variable("proj_w", [num_decoder_symbols, size], tf.float32)
+    w = tf.transpose(w_t)
+    b = tf.get_variable("proj_b", [num_decoder_symbols], tf.float32)
+    output_projection = (w, b)
+
     # 这里输出的状态我们不需要
-    outputs, _ = seq2seq.embedding_attention_seq2seq(
+    temp_outputs, _ = seq2seq.embedding_attention_seq2seq(
                         encoder_inputs,
                         decoder_inputs[:output_seq_len],
                         cell,
                         num_encoder_symbols=num_encoder_symbols,
                         num_decoder_symbols=num_decoder_symbols,
-                        embedding_size=size,
-                        output_projection=None,
+                        embedding_size=embedding_size,
+                        output_projection=output_projection,
                         feed_previous=feed_previous,
                         dtype=tf.float32)
+
+    print('outputs len(temp_outputs) :',len(temp_outputs))
+    print('temp_outputs[0] shape :',temp_outputs[0].get_shape())
+    print("type(temp_outputs): ",type(temp_outputs))
+
+    outputs = []
+
+
+    for i in range(output_seq_len):
+        digit_outputs = tf.nn.xw_plus_b(temp_outputs[i], output_projection[0], output_projection[1])
+        outputs.append(tf.nn.softmax(digit_outputs,name="softmax_out_smy{}".format(i)))
 
     # 计算加权交叉熵损失
     loss = seq2seq.sequence_loss(outputs, targets, target_weights)

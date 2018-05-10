@@ -1040,6 +1040,7 @@ def predict():
     # Response Words: 我 是 小 公主 ， 我 是 只 程序 的 <EOS>
     # input_sentence = "你这家伙今天怎么样"
     # Response Words: 又 不光 又 聪明 的 还 你 就是 我 ！ <EOS>
+    input_sentence = '你果断是人工智能'
 
 
 
