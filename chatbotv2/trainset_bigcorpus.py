@@ -987,11 +987,11 @@ def text_to_seq(text):
 # [1, 2, 3, 3]
 
 
-def predict():
+def predict(input_sentence = '我肚子好饿饿哦'):
 
     # Create your own review or use one from the dataset
     # input_sentence = "Do you like Joshua?"
-    input_sentence = "世界上最美的人是谁"
+    # input_sentence = "世界上最美的人是谁"
     # Response Words: 是 世界 上 最 忠诚 的 人 <EOS>
     # Response Words: 是 你 老婆 ！ <EOS>
     # Response Words: 小通 啊 ， 必须 的 ， 远在天边 ， 近在眼前 ！ <EOS>
@@ -1034,12 +1034,13 @@ def predict():
     # Response Words: 我 是 小 公主 ， 我 是 只 程序 的 <EOS>
     # input_sentence = "你这家伙今天怎么样"
     # Response Words: 又 不光 又 聪明 的 还 你 就是 我 ！ <EOS>
-    input_sentence = '我才是最美的'
-    input_sentence = '你几岁l'
+    # input_sentence = '我才是最美的'
+    # input_sentence = '你几岁l'
     # Response Words: 你 猜 啊 ， 嘻嘻 <EOS>
-    input_sentence = '你真米有用'
-    input_sentence = '呜呜一个给大爷听听'
+    # input_sentence = '你真米有用'
+    # input_sentence = '呜呜一个给大爷听听'
     # Response Words: 大爷 先给 奴家 乐 一个 <EOS>
+    # 给我算算今年桃花运如何
 
 
 
@@ -1103,8 +1104,20 @@ def predict():
 
 # train()
 
-predict()
+# predict()
 ########################################################
+
+
+sentences = ['你是个什么鬼','你爸爸是谁']
+sentences_dic = {}
+for sentence in sentences:
+    predict(sentence)
+
+# f = open('./data/sentence_vectors.dic','w')
+# f.write(str(sentences_dic))
+# f.close()
+
+
 
 
 

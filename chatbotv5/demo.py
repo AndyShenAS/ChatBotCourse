@@ -36,13 +36,13 @@ answer_words_path = '../chatbotv2/data/answer.all.norepeat.segment'
 question_path = '../chatbotv2/data/train.question'
 answer_path = '../chatbotv2/data/train.answer'
 model_path = './model/bigcorpus/demo'
-batchNUM = 4096
+batchNUM = 512
 learning_rate_threshold = 8
 min_freq = 8
 # 输入序列长度
 input_seq_len = 11
 # 输出序列长度
-output_seq_len = 13
+output_seq_len = 12
 # LSTM神经元size
 size = 512
 embedding_size = 204
@@ -109,7 +109,7 @@ def get_train_set():
 
                     question_id_list = get_id_list_from_seq(question_seq)
                     answer_id_list = get_id_list_from_seq(answer_seq)
-                    if len(question_id_list) > 0 and len(answer_id_list) > 0 and len(question_id_list) <= input_seq_len and len(answer_id_list) <= output_seq_len-2:
+                    if len(question_id_list) > 0 and len(answer_id_list) > 0 and len(question_id_list) <= input_seq_len and len(answer_id_list) <= output_seq_len:
                         if len(question_seq) - len(question_id_list) < 2 and len(answer_seq) - len(answer_id_list) < 1:
                             answer_id_list.append(EOS_ID)
                             train_set.append([question_id_list, answer_id_list])
@@ -158,7 +158,7 @@ def get_samples(train_set, batch_num, step):
             batch_train_set = train_set[start_i:end_i]
         for sample in batch_train_set:
             raw_encoder_input.append([PAD_ID] * (input_seq_len - len(sample[0])) + list(reversed(sample[0])))
-            raw_decoder_input.append([GO_ID] + sample[1] + [PAD_ID] * (output_seq_len - len(sample[1]) - 1))
+            raw_decoder_input.append([GO_ID] + sample[1] + [PAD_ID] * (output_seq_len - len(sample[1])))
 
         encoder_inputs = []
         decoder_inputs = []
@@ -166,7 +166,7 @@ def get_samples(train_set, batch_num, step):
 
         for length_idx in range(input_seq_len):
             encoder_inputs.append(np.array([encoder_input[length_idx] for encoder_input in raw_encoder_input], dtype=np.int32))
-        for length_idx in range(output_seq_len):
+        for length_idx in range(output_seq_len+1):
             decoder_inputs.append(np.array([decoder_input[length_idx] for decoder_input in raw_decoder_input], dtype=np.int32))
             target_weights.append(np.array([
                 0.0 if length_idx == output_seq_len - 1 or decoder_input[length_idx] == PAD_ID else 1.0 for decoder_input in raw_decoder_input
@@ -179,11 +179,11 @@ def seq_to_encoder(input_seq):
     """从输入空格分隔的数字id串，转成预测用的encoder、decoder、target_weight等
     """
     input_seq_array = [int(v) for v in input_seq.split()]
-    encoder_input = [PAD_ID] * (input_seq_len - len(input_seq_array)) + input_seq_array
-    decoder_input = [GO_ID] + [PAD_ID] * (output_seq_len - 1)
+    encoder_input = [PAD_ID] * (input_seq_len - len(input_seq_array)) + list(reversed(input_seq_array))
+    decoder_input = [GO_ID] + [PAD_ID] * (output_seq_len)
     encoder_inputs = [np.array([v], dtype=np.int32) for v in encoder_input]
     decoder_inputs = [np.array([v], dtype=np.int32) for v in decoder_input]
-    target_weights = [np.array([1.0], dtype=np.float32)] * output_seq_len
+    target_weights = [np.array([1.0], dtype=np.float32)] * (output_seq_len+1)
     return encoder_inputs, decoder_inputs, target_weights
 
 model_gradient_clipping = 1
@@ -207,13 +207,14 @@ def get_model(feed_previous=False):
     target_weights = []
     for i in range(input_seq_len):
         encoder_inputs.append(tf.placeholder(tf.int32, shape=[None], name="encoder{0}".format(i)))
-    for i in range(output_seq_len + 1):
+    for i in range(output_seq_len+2):
         decoder_inputs.append(tf.placeholder(tf.int32, shape=[None], name="decoder{0}".format(i)))
-    for i in range(output_seq_len):
+    for i in range(output_seq_len+1):
         target_weights.append(tf.placeholder(tf.float32, shape=[None], name="weight{0}".format(i)))
 
     # decoder_inputs左移一个时序作为targets
-    targets = [decoder_inputs[i + 1] for i in range(output_seq_len)]
+    # targets = [decoder_inputs[i + 1] for i in range(output_seq_len)] + [PAD_ID]
+    targets = [decoder_inputs[i + 1] for i in range(output_seq_len+1)]
 
     cell = tf.contrib.rnn.BasicLSTMCell(size)
 
@@ -225,7 +226,7 @@ def get_model(feed_previous=False):
     # 这里输出的状态我们不需要
     temp_outputs, _ = seq2seq.embedding_attention_seq2seq(
                         encoder_inputs,
-                        decoder_inputs[:output_seq_len],
+                        decoder_inputs[:output_seq_len+1],
                         cell,
                         num_encoder_symbols=num_encoder_symbols,
                         num_decoder_symbols=num_decoder_symbols,
@@ -241,9 +242,10 @@ def get_model(feed_previous=False):
     outputs = []
 
 
-    for i in range(output_seq_len):
+    for i in range(output_seq_len + 1):
         digit_outputs = tf.nn.xw_plus_b(temp_outputs[i], output_projection[0], output_projection[1])
-        outputs.append(tf.nn.softmax(digit_outputs,name="softmax_out_smy{}".format(i)))
+        # outputs.append(tf.nn.softmax(digit_outputs,name="softmax_out_smy{}".format(i)))
+        outputs.append(digit_outputs)
 
     # 计算加权交叉熵损失
     loss = seq2seq.sequence_loss(outputs, targets, target_weights)
@@ -288,8 +290,8 @@ def train():
 
         # 全部变量初始化
         sess.run(tf.global_variables_initializer())
-        # saver.restore(sess, model_path)   #换这句可以接着上次的训练
-        # print('get model successfully.....')
+        saver.restore(sess, model_path)   #换这句可以接着上次的训练
+        print('get model successfully.....')
         sess.run(learning_rate_init)
 
         ####################################################
@@ -305,10 +307,10 @@ def train():
                 input_feed = {}
                 for l in range(input_seq_len):
                     input_feed[encoder_inputs[l].name] = sample_encoder_inputs[l]
-                for l in range(output_seq_len):
+                for l in range(output_seq_len+1):
                     input_feed[decoder_inputs[l].name] = sample_decoder_inputs[l]
                     input_feed[target_weights[l].name] = sample_target_weights[l]
-                input_feed[decoder_inputs[output_seq_len].name] = np.zeros([len(sample_decoder_inputs[0])], dtype=np.int32)
+                input_feed[decoder_inputs[output_seq_len+1].name] = np.zeros([len(sample_decoder_inputs[0])], dtype=np.int32)
                 [loss_ret, _, summary_str] = sess.run([loss, update, merged_summary_op], input_feed)
 
                 ###################################################
@@ -317,7 +319,7 @@ def train():
                 ###################################################
                 Epoches_losses.append(loss_ret)
 
-                if batch_i % 5 == 0:
+                if batch_i % 20 == 0:
                     print('step=', step,'batch_i=', batch_i, 'loss=', loss_ret, 'learning_rate=', learning_rate.eval())
 
             if len(previous_losses) > learning_rate_threshold and sum(Epoches_losses)/len(Epoches_losses) > max(previous_losses[-learning_rate_threshold:]):
@@ -374,6 +376,39 @@ def predict():
             sys.stdout.write("> ")
             sys.stdout.flush()
             input_seq = sys.stdin.readline()
+
+
+# > 你是个什么鬼
+# Building prefix dict from the default dictionary ...
+# Loading model from cache /tmp/jieba.cache
+# Loading model cost 0.494 seconds.
+# Prefix dict has been built succesfully.
+# 我 是 个 猥琐 无敌 可爱 鸡
+# > 你爸爸是谁
+# 是 你 没有 蛋
+
+# ('Original Text:', '你是个什么鬼')
+#
+# Text
+#   Word Ids:    [111, 94, 36, 21, 6]
+#   Input Words: 鬼 什么 个 是 你    
+#
+# Summary
+#   Word Ids:       [44, 21, 36, 113, 126, 2]
+#   Response Words: 我 是 个 坏 鸡 <EOS>
+#
+# ('Original Text:', '你爸爸是谁')
+#
+# Text
+#   Word Ids:    [173, 21, 453, 6]
+#   Input Words: 谁 是 爸爸 你
+#
+# Summary
+#   Word Ids:       [44, 453, 231, 6, 453, 593, 2]
+#   Response Words: 我 爸爸 就是 你 爸爸 ~ <EOS>
+
+
+
 
 
 if __name__ == "__main__":
