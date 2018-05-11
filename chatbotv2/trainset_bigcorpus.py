@@ -867,7 +867,7 @@ def train():
     display_step = 20 # Check training loss after every 20 batches
     stop_early = 0
     # If the update loss does not decrease in num_to_stop consecutive update checks, stop training
-    num_to_stop = 151
+    num_to_stop = 7
 
     per_epoch = 3
 
@@ -889,8 +889,8 @@ def train():
         training_logits, inference_logits, train_op, cost, merged_summary_op, input_data, targets, lr, y_length, X_length, keep_prob, saver = model_build()
 
         sess.run(tf.global_variables_initializer())
-        # saver.restore(sess, model_path)   #换这句可以接着上次的训练
-        # print('get model successfully.....')
+        saver.restore(sess, model_path)   #换这句可以接着上次的训练
+        print('get model successfully.....')
 
         summary_writer = tf.summary.FileWriter(logdir, sess.graph)
         ####################################################
@@ -987,15 +987,16 @@ def text_to_seq(text):
 # [1, 2, 3, 3]
 
 
-def predict():
+def predict(input_sentence = '我肚子好饿饿哦'):
 
     # Create your own review or use one from the dataset
     # input_sentence = "Do you like Joshua?"
-    input_sentence = "世界上最美的人是谁"
+    # input_sentence = "世界上最美的人是谁"
     # Response Words: 是 世界 上 最 忠诚 的 人 <EOS>
     # Response Words: 是 你 老婆 ！ <EOS>
     # Response Words: 小通 啊 ， 必须 的 ， 远在天边 ， 近在眼前 ！ <EOS>
     # Response Words: 是 你 老婆 ！ 宝宝 ！ <EOS>
+    # Response Words: 宝宝 最棒 <EOS>
     # input_sentence = "我好想你啊"
     # Response Words: 会 分手 <EOS>
     # Response Words: 我 也 想 你 啊 <EOS>
@@ -1033,6 +1034,17 @@ def predict():
     # Response Words: 我 是 小 公主 ， 我 是 只 程序 的 <EOS>
     # input_sentence = "你这家伙今天怎么样"
     # Response Words: 又 不光 又 聪明 的 还 你 就是 我 ！ <EOS>
+    # input_sentence = '我才是最美的'
+    # input_sentence = '你几岁l'
+    # Response Words: 你 猜 啊 ， 嘻嘻 <EOS>
+    # input_sentence = '你真米有用'
+    # input_sentence = '呜呜一个给大爷听听'
+    # Response Words: 大爷 先给 奴家 乐 一个 <EOS>
+    # 给我算算今年桃花运如何
+
+
+
+
 
 
 
@@ -1066,8 +1078,10 @@ def predict():
                                           X_length: [len(text)]*batch_size,
                                           keep_prob: 1.0})[0]
 
+
+
     # Remove the paddings
-    pad = word_to_int["<PAD>"]
+    pad = word_to_int["<EOS>"]
 
     print(('Original Text:', input_sentence))
 
@@ -1075,25 +1089,49 @@ def predict():
     print(('  Word Ids:    {}'.format([i for i in text])))
     print(('  Input Words: {}'.format(" ".join([int_to_word[i] for i in text]))))
 
-    # print('\nSummary1')
-    # print(('  Word Ids:       {}'.format([i for i in answer_logits if i != pad])))
-    # print(('  Response Words: {}'.format(" ".join([int_to_word[i] for i in answer_logits if i != pad]))))
-
     print('\nSummary')
     print(('  Word Ids:       {}'.format([i for i in answer_logits])))
     print(('  Response Words: {}'.format(" ".join([int_to_word[i] for i in answer_logits]))))
 
-    # print('\nSummary2')
-    # print(('  Word Ids:       {}'.format([answer_logits[i] for i in range(len(answer_logits)) if i != pad and answer_logits[i] != answer_logits[i-1]])))
-    # print(('  Response Words: {}'.format(" ".join([int_to_word[answer_logits[i]] for i in range(len(answer_logits)) if i != pad and answer_logits[i] != answer_logits[i-1]]))))
-
+    return "".join([int_to_word[i] for i in answer_logits if i != pad])
 
 ##################################################################################
 
-train()
+# train()
 
-predict()
+# predict()
 ########################################################
+
+def generate_ans():
+    sentences = []
+    with open('./data/test.question.nosegment', 'r') as input_file:
+        while True:
+            question = input_file.readline()
+            if question:
+                line_question = question.strip()
+                sentences.append(line_question)
+            else:
+                break
+
+
+    # sentences = ['你是个什么鬼','你爸爸是谁']
+    answers = []
+    answers_str = ''
+    count = 0
+    for sentence in sentences:
+        gene_line = predict(sentence)
+        answers.append(gene_line)
+        answers_str += gene_line+'\n'
+        count += 1
+        print('count',count)
+        print('sentence',sentence)
+        print('gene_line',gene_line)
+
+    f = open('./data/newseq2seq_generated_test.answer.nosegment','w')
+    f.write(answers_str)
+    f.close()
+
+generate_ans()
 
 
 
