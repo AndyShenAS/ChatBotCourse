@@ -1110,11 +1110,11 @@ def generate_ans(input_file = './data/test.answer.nosegment', output_file = './d
 
 # generate_ans()
 
-input_files = ['./data/test.answer.nosegment','./data/newseq2seq_generated_test.answer.nosegment','./data/oldseq2seq_generated_test.answer.nosegment']
-output_files = ['./data/test_answer_vectors.dic','./data/newseq2seq_test_answer_vectors.dic','./data/oldseq2seq_test_answer_vectors.dic']
+# input_files = ['./data/test.answer.nosegment','./data/newseq2seq_generated_test.answer.nosegment','./data/oldseq2seq_generated_test.answer.nosegment']
+# output_files = ['./data/test_answer_vectors.dic','./data/newseq2seq_test_answer_vectors.dic','./data/oldseq2seq_test_answer_vectors.dic']
 
-# input_files = ['./data/newseq2seq_generated_test.answer.nosegment']
-# output_files = ['./data/newseq2seq_test_answer_vectors.dic']
+input_files = ['./data/newseq2seq_generated_test.answer.nosegment']
+output_files = ['./data/newseq2seq_test_answer_vectors.dic']
 
 for i in range(len(input_files)):
     generate_ans(input_files[i],output_files[i])
