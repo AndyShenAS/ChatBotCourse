@@ -1032,13 +1032,13 @@ def predict(input_sentence = '我肚子好饿饿哦'):
     # input_sentence = "你寂寞无聊时会干什么"
     # Response Words: 主人 ， 我 陪 我 聊天 <EOS>
     # Response Words: 我 是 小 公主 ， 我 是 只 程序 的 <EOS>
-    input_sentence = "你这家伙今天怎么样"
+    # input_sentence = "你这家伙今天怎么样"
     # Response Words: 又 不光 又 聪明 的 还 你 就是 我 ！ <EOS>
     # input_sentence = '我才是最美的'
     # input_sentence = '你几岁l'
     # Response Words: 你 猜 啊 ， 嘻嘻 <EOS>
     # input_sentence = '你真米有用'
-    input_sentence = '呜呜一个给大爷听听'
+    # input_sentence = '呜呜一个给大爷听听'
     # Response Words: 大爷 先给 奴家 乐 一个 <EOS>
     # 给我算算今年桃花运如何
 
@@ -1115,7 +1115,7 @@ def predict(input_sentence = '我肚子好饿饿哦'):
                                           keep_prob: 1.0})[0]
 
     # Remove the paddings
-    pad = word_to_int["<PAD>"]
+    pad = word_to_int["<EOS>"]
 
     print(('Original Text:', input_sentence))
 
@@ -1123,35 +1123,50 @@ def predict(input_sentence = '我肚子好饿饿哦'):
     print(('  Word Ids:    {}'.format([i for i in text])))
     print(('  Input Words: {}'.format(" ".join([int_to_word[i] for i in text]))))
 
-    # print('\nSummary1')
-    # print(('  Word Ids:       {}'.format([i for i in answer_logits if i != pad])))
-    # print(('  Response Words: {}'.format(" ".join([int_to_word[i] for i in answer_logits if i != pad]))))
-
     print('\nSummary')
     print(('  Word Ids:       {}'.format([i for i in answer_logits])))
     print(('  Response Words: {}'.format(" ".join([int_to_word[i] for i in answer_logits]))))
 
-    # print('\nSummary2')
-    # print(('  Word Ids:       {}'.format([answer_logits[i] for i in range(len(answer_logits)) if i != pad and answer_logits[i] != answer_logits[i-1]])))
-    # print(('  Response Words: {}'.format(" ".join([int_to_word[answer_logits[i]] for i in range(len(answer_logits)) if i != pad and answer_logits[i] != answer_logits[i-1]]))))
-
+    return "".join([int_to_word[i] for i in answer_logits if i != pad])
 
 ##################################################################################
 
 # train()
 
-predict()
+# predict()
 ########################################################
 
 
-# sentences = ['你是个什么鬼','你爸爸是谁']
-# sentences_dic = {}
-# for sentence in sentences:
-#     predict(sentence)
+def generate_ans():
+    sentences = []
+    with open('./data/test.question.nosegment', 'r') as input_file:
+        while True:
+            question = input_file.readline()
+            if question:
+                line_question = question.strip()
+                sentences.append(line_question)
+            else:
+                break
 
-# f = open('./data/sentence_vectors.dic','w')
-# f.write(str(sentences_dic))
-# f.close()
+
+    # sentences = ['你是个什么鬼','你爸爸是谁']
+    answers = []
+    answers_str = ''
+    count = 0
+    for sentence in sentences:
+        gene_line = predict(sentence)
+        answers.append(gene_line)
+        answers_str += gene_line+'\n'
+        count += 1
+        print('count',count)
+        print('sentence',sentence)
+        print('gene_line',gene_line)
+
+    f = open('./data/newseq2seq_generated_test.answer.nosegment','w')
+    f.write(answers_str)
+    f.close()
+
+generate_ans()
 
 
 
