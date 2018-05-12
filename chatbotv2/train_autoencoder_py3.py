@@ -1070,14 +1070,56 @@ def predict(input_sentence = '我肚子好饿饿哦'):
 
 
 # sentences = ['我喜欢你','我爱你','我讨厌你','我恨你','你喜欢我','你爱我','你讨厌我','你恨我']
-sentences = ['我喜欢你','我爱你','我羡慕你','你喜欢我','你爱我','你羡慕我']
-sentences_dic = {}
-for sentence in sentences:
-    sentences_dic[sentence] = predict(sentence)
+# sentences = ['我喜欢你','我爱你','我羡慕你','你喜欢我','你爱我','你羡慕我']
+# sentences_dic = {}
+# for sentence in sentences:
+#     sentences_dic[sentence] = predict(sentence)
+#
+# f = open('./data/sentence_vectors.dic','w')
+# f.write(str(sentences_dic))
+# f.close()
 
-f = open('./data/sentence_vectors.dic','w')
-f.write(str(sentences_dic))
-f.close()
+
+
+
+
+def generate_ans(input_file = './data/test.answer.nosegment', output_file = './data/newseq2seq_test_answer_vectors.dic'):
+    sentences = []
+    with open(input_file, 'r') as input_file:
+        while True:
+            question = input_file.readline()
+            if question:
+                line_question = question.strip()
+                sentences.append(line_question)
+            else:
+                break
+    # sentences = ['你是个什么鬼','你爸爸是谁']
+    sentences_dic = {}
+    count = 0
+    for sentence in sentences:
+        print('count............',count)
+        count += 1
+        sentences_dic[sentence] = predict(sentence)
+
+    f = open(output_file,'w')
+    f.write(str(sentences_dic))
+    f.close()
+    print('success......')
+    print('input_file',input_file)
+    print('output_file',output_file)
+
+# generate_ans()
+
+input_files = ['./data/test.answer.nosegment','./data/newseq2seq_generated_test.answer.nosegment','./data/oldseq2seq_generated_test.answer.nosegment']
+output_files = ['./data/test_answer_vectors.dic','./data/newseq2seq_test_answer_vectors.dic','./data/oldseq2seq_test_answer_vectors.dic']
+
+# input_files = ['./data/newseq2seq_generated_test.answer.nosegment']
+# output_files = ['./data/newseq2seq_test_answer_vectors.dic']
+
+for i in range(len(input_files)):
+    generate_ans(input_files[i],output_files[i])
+
+
 
 
 
