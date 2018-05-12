@@ -58,6 +58,11 @@ def vector_cosine(v1, v2):
         sys.exit(1)
     sqrtlen1 = vector_sqrtlen(v1)
     sqrtlen2 = vector_sqrtlen(v2)
+    if sqrtlen1*sqrtlen2 == 0:
+        print('float division by zero .....')
+        print('v1......',v1)
+        print('v2......',v2)
+        return 0
     value = 0
     for item1, item2 in zip(v1, v2):
         value += item1 * item2
@@ -76,6 +81,8 @@ def average_cosine_similarity():
     for j in range(len(pure_vec[0])):
         newseq2seq_cos_sim.append(vector_cosine(pure_vec[0][j], pure_vec[1][j]))
         oldseq2seq_cos_sim.append(vector_cosine(pure_vec[0][j], pure_vec[2][j]))
+    print('sum(newseq2seq_cos_sim).....',sum(newseq2seq_cos_sim))
+    print('sum(oldseq2seq_cos_sim).....',sum(oldseq2seq_cos_sim))
 
 def eval_distance(dic):
     for sentence in dic:
@@ -187,7 +194,8 @@ if __name__ == '__main__':
     # dic = load_vectors('./data/sentence_vectors.dic')
     # eval_distance(dic)
     # pca_transfer(dic)
-    pca_show()
+    # pca_show()
+    average_cosine_similarity()
 
 
 
