@@ -1116,8 +1116,8 @@ def generate_ans(input_file = './data/test.answer.nosegment', output_file = './d
 # input_files = ['./data/test.answer.nosegment','./data/newseq2seq_generated_test.answer.nosegment','./data/oldseq2seq_generated_test.answer.nosegment']
 # output_files = ['./data/test_answer_vectors.dic','./data/newseq2seq_test_answer_vectors.dic','./data/oldseq2seq_test_answer_vectors.dic']
 
-input_files = ['./data/newseq2seq_generated_test.answer.nosegment']
-output_files = ['./data/newseq2seq_test_answer_vectors.dic']
+# input_files = ['./data/newseq2seq_generated_test.answer.nosegment']
+# output_files = ['./data/newseq2seq_test_answer_vectors.dic']
 
 input_files = ['./data/newseq2seq_generated_test.answer.nosegment']
 output_files = ['./data/newseq2seq_test_answer_vectors.list']
