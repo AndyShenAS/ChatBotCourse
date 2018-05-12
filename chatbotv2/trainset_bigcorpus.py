@@ -1038,7 +1038,7 @@ def predict(input_sentence = '我肚子好饿饿哦'):
     # input_sentence = '你几岁l'
     # Response Words: 你 猜 啊 ， 嘻嘻 <EOS>
     # input_sentence = '你真米有用'
-    # input_sentence = '呜呜一个给大爷听听'
+    input_sentence = '呜呜一个给大爷听听'
     # Response Words: 大爷 先给 奴家 乐 一个 <EOS>
     # 给我算算今年桃花运如何
 
@@ -1099,7 +1099,7 @@ def predict(input_sentence = '我肚子好饿饿哦'):
 
 # train()
 
-# predict()
+predict()
 ########################################################
 
 def generate_ans():
@@ -1131,7 +1131,7 @@ def generate_ans():
     f.write(answers_str)
     f.close()
 
-generate_ans()
+# generate_ans()
 
 
 
