@@ -7,6 +7,7 @@ from sklearn import preprocessing
 from sklearn.decomposition import PCA
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
+import collections
 from sklearn.cluster import MeanShift, estimate_bandwidth
 plt.rcParams['font.sans-serif']=['FangSong'] #用来正常显示中文标签
 plt.rcParams['axes.unicode_minus']=False #用来正常显示负号
@@ -20,7 +21,26 @@ def load_vectors(input = './data/sentence_vectors.dic'):
     a = input_file.read()
     sentence_vector = eval(a)
     input_file.close()
+
     print("load vectors finish")
+    # for each in sentence_vector:
+    #     print(each,': \n')
+    #     print(sentence_vector[each],'\n')
+    return sentence_vector
+
+def load_test_files():
+    print("begin load files")
+    dic_files = ['./data/test_answer_vectors.list','./data/newseq2seq_test_answer_vectors.list','./data/oldseq2seq_test_answer_vectors.list']
+
+
+    for i in range(len(dic_files)):
+        input_file = open(dic_files[i], "r")
+        a = input_file.read()
+        sentence_vector = eval(a)
+        input_file.close()
+
+
+    print("load files finish")
     # for each in sentence_vector:
     #     print(each,': \n')
     #     print(sentence_vector[each],'\n')
@@ -56,6 +76,43 @@ def eval_distance(dic):
         for each in xx:
             print(each[0],each[1])
 
+def pca_show(dic):
+    sentences = []
+    weights = []
+    for k,v in dic.items():
+        sentences.append(k)
+        weights.append(v)
+    test_weights = []
+    test_sentences =[]
+
+    test_weights = weights
+    test_sentences =sentences
+
+    # test_words.extend(["man","woman","king","queen","princess","prince","male","female"])
+    min_max_scaler = preprocessing.MinMaxScaler()
+    globalMean_minmax = min_max_scaler.fit_transform(test_weights)
+    #PCA 降维
+    pca = PCA(n_components=0.95)
+    pca.fit(globalMean_minmax)
+    newData_PCA = pca.transform(globalMean_minmax)
+    print(newData_PCA)
+    # print(words)
+    print('PCA result......')
+    print(pca.explained_variance_ratio_)
+    print(pca.explained_variance_)
+    print(pca.n_components_)
+    #setting plt
+    # plt.xlim(xmax=6,xmin=-6)
+    # plt.ylim(ymax=6,ymin=-6)
+    plt.title('中文句子向量',fontsize=18)
+    plt.xlabel("width",fontsize=18, family='serif', style='italic')
+    plt.ylabel("height",fontsize=18, family='serif', style='italic')
+    for i in range(len(test_sentences)):
+        plt.text(newData_PCA[i][0],newData_PCA[i][1]+0.5,test_sentences[i], ha='right', wrap=True, fontsize=15)
+        plt.scatter(newData_PCA[i][0],newData_PCA[i][1], color='', marker='o', edgecolors='r', s=60)
+    # plt.legend(loc='upper center', shadow=True, fontsize='x-large')
+    plt.grid(True)
+    plt.show()
 
 def pca_transfer(dic):
     sentences = []

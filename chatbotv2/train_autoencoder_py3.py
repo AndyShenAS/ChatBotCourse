@@ -9,7 +9,7 @@ from bz2 import BZ2File
 from io import open
 from collections import Counter
 import random
-
+import collections
 import sys
 import math
 import tflearn
@@ -1094,15 +1094,18 @@ def generate_ans(input_file = './data/test.answer.nosegment', output_file = './d
             else:
                 break
     # sentences = ['你是个什么鬼','你爸爸是谁']
-    sentences_dic = {}
+    sentences_list = []
     count = 0
     for sentence in sentences:
         print('count............',count)
         count += 1
-        sentences_dic[sentence] = predict(sentence)
+        single_list = []
+        single_list.append(sentence)
+        single_list.append(predict(sentence))
+        sentences_list.append(single_list)
 
     f = open(output_file,'w')
-    f.write(str(sentences_dic))
+    f.write(str(sentences_list))
     f.close()
     print('success......')
     print('input_file',input_file)
@@ -1110,11 +1113,14 @@ def generate_ans(input_file = './data/test.answer.nosegment', output_file = './d
 
 # generate_ans()
 
-input_files = ['./data/test.answer.nosegment','./data/newseq2seq_generated_test.answer.nosegment','./data/oldseq2seq_generated_test.answer.nosegment']
-output_files = ['./data/test_answer_vectors.dic','./data/newseq2seq_test_answer_vectors.dic','./data/oldseq2seq_test_answer_vectors.dic']
+# input_files = ['./data/test.answer.nosegment','./data/newseq2seq_generated_test.answer.nosegment','./data/oldseq2seq_generated_test.answer.nosegment']
+# output_files = ['./data/test_answer_vectors.dic','./data/newseq2seq_test_answer_vectors.dic','./data/oldseq2seq_test_answer_vectors.dic']
 
 # input_files = ['./data/newseq2seq_generated_test.answer.nosegment']
 # output_files = ['./data/newseq2seq_test_answer_vectors.dic']
+
+input_files = ['./data/newseq2seq_generated_test.answer.nosegment']
+output_files = ['./data/newseq2seq_test_answer_vectors.list']
 
 for i in range(len(input_files)):
     generate_ans(input_files[i],output_files[i])
