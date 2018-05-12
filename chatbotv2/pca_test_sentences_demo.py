@@ -31,12 +31,12 @@ def load_vectors(input = './data/sentence_vectors.dic'):
 def load_test_files():
     print("begin load files")
     dic_files = ['./data/test_answer_vectors.list','./data/newseq2seq_test_answer_vectors.list','./data/oldseq2seq_test_answer_vectors.list']
-
-
+    tests_vec = []
     for i in range(len(dic_files)):
         input_file = open(dic_files[i], "r")
         a = input_file.read()
         sentence_vector = eval(a)
+        tests_vec.append(sentence_vector)
         input_file.close()
 
 
@@ -44,7 +44,7 @@ def load_test_files():
     # for each in sentence_vector:
     #     print(each,': \n')
     #     print(sentence_vector[each],'\n')
-    return sentence_vector
+    return tests_vec
 
 def vector_sqrtlen(vector):
     len = 0
@@ -76,18 +76,23 @@ def eval_distance(dic):
         for each in xx:
             print(each[0],each[1])
 
-def pca_show(dic):
-    sentences = []
+def pca_show():
+    tests_vec = load_test_files()
+    pure_vec = []
+    for i in range(len(tests_vec)):
+        vecs = []
+        for j in range(len(tests_vec[i])):
+            vecs.append(tests_vec[i][j][1])
+        pure_vec.append(vecs)
     weights = []
-    for k,v in dic.items():
-        sentences.append(k)
-        weights.append(v)
-    test_weights = []
-    test_sentences =[]
+    for j in range(len(pure_vec[0])):
+        vector1 = list(map(lambda x: x[0]-x[1], zip(pure_vec[0][j], pure_vec[1][j])))
+        vector2 = list(map(lambda x: x[0]-x[1], zip(pure_vec[0][j], pure_vec[2][j])))
+        weights.append(vector1)
+        weights.append(vector2)
+
 
     test_weights = weights
-    test_sentences =sentences
-
     # test_words.extend(["man","woman","king","queen","princess","prince","male","female"])
     min_max_scaler = preprocessing.MinMaxScaler()
     globalMean_minmax = min_max_scaler.fit_transform(test_weights)
@@ -107,9 +112,13 @@ def pca_show(dic):
     plt.title('中文句子向量',fontsize=18)
     plt.xlabel("width",fontsize=18, family='serif', style='italic')
     plt.ylabel("height",fontsize=18, family='serif', style='italic')
-    for i in range(len(test_sentences)):
-        plt.text(newData_PCA[i][0],newData_PCA[i][1]+0.5,test_sentences[i], ha='right', wrap=True, fontsize=15)
-        plt.scatter(newData_PCA[i][0],newData_PCA[i][1], color='', marker='o', edgecolors='r', s=60)
+    for i in range(len(newData_PCA)):
+        # plt.text(newData_PCA[i][0],newData_PCA[i][1]+0.5,test_sentences[i], ha='right', wrap=True, fontsize=15)
+        if i%2 == 0:
+            edgecolors = 'r'
+        else:
+            edgecolors = 'b'
+        plt.scatter(newData_PCA[i][0],newData_PCA[i][1], color='', marker='o', edgecolors=edgecolors, s=20)
     # plt.legend(loc='upper center', shadow=True, fontsize='x-large')
     plt.grid(True)
     plt.show()
@@ -161,9 +170,10 @@ if __name__ == '__main__':
     #     sys.exit(-1)
         # ./data/vectors.bin
         # 提示怎么写参数的file = open('question',"w", encoding='utf-8')
-    dic = load_vectors('./data/sentence_vectors.dic')
-    eval_distance(dic)
-    pca_transfer(dic)
+    # dic = load_vectors('./data/sentence_vectors.dic')
+    # eval_distance(dic)
+    # pca_transfer(dic)
+    pca_show()
 
 
 
