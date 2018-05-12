@@ -63,6 +63,20 @@ def vector_cosine(v1, v2):
         value += item1 * item2
     return value / (sqrtlen1*sqrtlen2)
 
+def average_cosine_similarity():
+    tests_vec = load_test_files()
+    pure_vec = []
+    for i in range(len(tests_vec)):
+        vecs = []
+        for j in range(len(tests_vec[i])):
+            vecs.append(tests_vec[i][j][1])
+        pure_vec.append(vecs)
+    newseq2seq_cos_sim = []
+    oldseq2seq_cos_sim = []
+    for j in range(len(pure_vec[0])):
+        newseq2seq_cos_sim.append(vector_cosine(pure_vec[0][j], pure_vec[1][j]))
+        oldseq2seq_cos_sim.append(vector_cosine(pure_vec[0][j], pure_vec[2][j]))
+
 def eval_distance(dic):
     for sentence in dic:
         dist_dic = {}
