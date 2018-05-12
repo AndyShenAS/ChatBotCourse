@@ -348,7 +348,7 @@ learning_rate = 0.001
 learning_rate_decay = 0.95
 min_learning_rate = 0.00005
 epochs = 170
-batch_size = 512
+batch_size = 420
 keep_probability = 0.75
 # 1 - GradientDescentOptimizer
 # 2 - AdamOptimizer
@@ -361,7 +361,7 @@ model_optimizer = 2
 # 3 - LSTM
 encoder_cell_type = 3
 decoder_cell_type = 3
-rnn_dim = 512
+rnn_dim = 1024
 encoder_forget_bias = 1.0
 decoder_forget_bias = 1.0
 
@@ -396,7 +396,7 @@ clip_value_min = -3
 clip_value_max = 3
 clip_norm = 5
 
-model_path = "./models/trainset_bigcorpus_2layerdecoder/best_model.ckpt"
+model_path = "./models/trainset_bigcorpus_2layerdecoder_moreunit/best_model.ckpt"
 logdir = '/tmp/tensorflow/my_seq2seq_bigcorpus_logs/'
 difstr = time.strftime('%Y-%m-%d %H:%M:%S',time.localtime(time.time()))
 logdir += difstr
@@ -889,8 +889,8 @@ def train():
         training_logits, inference_logits, train_op, cost, merged_summary_op, input_data, targets, lr, y_length, X_length, keep_prob, saver = model_build()
 
         sess.run(tf.global_variables_initializer())
-        saver.restore(sess, model_path)   #换这句可以接着上次的训练
-        print('get model successfully.....')
+        # saver.restore(sess, model_path)   #换这句可以接着上次的训练
+        # print('get model successfully.....')
 
         summary_writer = tf.summary.FileWriter(logdir, sess.graph)
         ####################################################
@@ -1032,7 +1032,7 @@ def predict(input_sentence = '我肚子好饿饿哦'):
     # input_sentence = "你寂寞无聊时会干什么"
     # Response Words: 主人 ， 我 陪 我 聊天 <EOS>
     # Response Words: 我 是 小 公主 ， 我 是 只 程序 的 <EOS>
-    # input_sentence = "你这家伙今天怎么样"
+    input_sentence = "你这家伙今天怎么样"
     # Response Words: 又 不光 又 聪明 的 还 你 就是 我 ！ <EOS>
     # input_sentence = '我才是最美的'
     # input_sentence = '你几岁l'
@@ -1052,7 +1052,34 @@ def predict(input_sentence = '我肚子好饿饿哦'):
 #   Word Ids:       [780, 106, 11208, 2]
 #   Response Words: 去 吃 切糕 <EOS>
 
+# ('Original Text:', '我肚子好饿饿哦')
+#
+# Text
+#   Word Ids:    [227, 196, 196, 99, 2214, 44]
+#   Input Words: 哦 饿 饿 好 肚子 我
+#
+# Summary
+#   Word Ids:       [780, 106, 1882, 2]
+#   Response Words: 去 吃 东西 <EOS>
 
+# ('Original Text:', '你这家伙今天怎么样')
+#
+# Text
+#   Word Ids:    [575, 348, 3797, 67, 6]
+#   Input Words: 怎么样 今天 家伙 这 你
+#
+# Summary
+#   Word Ids:       [1346, 50, 7865, 513, 2]
+#   Response Words: 爆 了 恩 ！ <EOS>
+# ('Original Text:', '呜呜一个给大爷听听')
+#
+# Text
+#   Word Ids:    [1039, 3794, 177, 221, 1150]
+#   Input Words: 听听 大爷 给 一个 呜呜
+#
+# Summary
+#   Word Ids:       [3794, 12607, 7700, 4052, 221, 2]
+#   Response Words: 大爷 先给 奴家 乐 一个 <EOS>
 
 
 
