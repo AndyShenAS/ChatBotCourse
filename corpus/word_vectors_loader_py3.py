@@ -147,6 +147,16 @@ def dic_length(wordVector):
     f.write(wrSTR)
     f.close()
 
+def save_tsv(wordVector):
+    wrSTR = ''
+    for each in wordVector:
+        wrSTR += each+'\t'
+        for num in wordVector[each]:
+            wrSTR += str(num)
+    f = open('./data/vectors_length.dic','w')
+    f.write(wrSTR)
+    f.close()
+
 if __name__ == '__main__':
     if 2 != len(sys.argv):
         print("Usage: ", sys.argv[0], "vectors.bin")
@@ -155,7 +165,7 @@ if __name__ == '__main__':
     # d = load_vectors(sys.argv[1])
     # save_dic(d)
     wordVector = load_dic()
-    dic_length(wordVector)
+    # dic_length(wordVector)
 
     # save_words(d)
 

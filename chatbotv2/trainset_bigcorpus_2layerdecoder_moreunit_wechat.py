@@ -9,7 +9,7 @@ from bz2 import BZ2File
 from io import open
 from collections import Counter
 import random
-import collections
+
 import sys
 import math
 import tflearn
@@ -38,22 +38,14 @@ from nltk import word_tokenize, sent_tokenize
 # please put the corpus at this path
 # data_path = 'data/output1.bz2'
 # output_path = 'models/model1'
-unique_seqs = {}
-
-batch_size = 256
-threshold = 10
-num_to_stop = 7
-# batch_size = 32
-# threshold = 1
-# num_to_stop = 7
 
 question_seqs = []
 answer_seqs = []
 
 # question_path = '../chatbotv5/samples/question.big.segment'
 # answer_path = '../chatbotv5/samples/answer.big.segment'
-question_path = '../chatbotv5/samples/question.big.norepeat.segment'
-answer_path = '../chatbotv5/samples/answer.big.norepeat.segment'
+question_path = '../corpus/data/question.segment'
+answer_path = '../corpus/data/answer.segment'
 #一定要预处理，把重复问题去掉，不然loss一直降不下来！！！
 
 def get_train_set():
@@ -73,45 +65,11 @@ def get_train_set():
                         answer_seq.append(word)
                 else:
                     break
-                if str(question_seq) not in unique_seqs:
-                    unique_seqs[str(question_seq)] = 1
-                    question_seqs.append(question_seq)
-                    answer_seqs.append(question_seq)
-                if str(answer_seq) not in unique_seqs:
-                    unique_seqs[str(answer_seq)] = 1
-                    question_seqs.append(answer_seq)
-                    answer_seqs.append(answer_seq)
+                question_seqs.append(question_seq)
+                answer_seqs.append(answer_seq)
 
-
-
-def init_seq(input_file = './corpus.segment'):
-    """读取切好词的文本文件，加载全部词序列
-    """
-    file_object = open(input_file, 'r')
-    vocab_dict = {}
-    while True:
-        question_seq = []
-        answer_seq = []
-        line = file_object.readline()
-        if line:
-            line = line.strip()
-            for word in line.split(' '):
-                question_seq.append(word)
-
-        else:
-            break
-        if str(question_seq) not in unique_seqs:
-            unique_seqs[str(question_seq)] = 1
-            question_seqs.append(question_seq)
-            answer_seqs.append(question_seq)
-        # question_seqs.append(answer_seq)
-        # answer_seqs.append(answer_seq)
-    file_object.close()
 
 get_train_set()
-print('len(unique_seqs):',len(unique_seqs))
-init_seq()
-print('len(unique_seqs):',len(unique_seqs))
 X = question_seqs
 y = answer_seqs
 # for i in range(30):
@@ -146,7 +104,7 @@ max_w = 50
 float_size = 4
 word_vec_dim = 200
 word_vector_dict = {}
-def load_vectors(input = "../corpus/data/vectors.bin"):
+def load_vectors(input = "../corpus/data/wechat_vectors.bin"):
     """从vectors.bin加载词向量，返回一个word_vector_dict的词典，key是词，value是200维的向量
     """
     print("begin load vectors")
@@ -186,6 +144,8 @@ def load_vectors(input = "../corpus/data/vectors.bin"):
             (weight,) = struct.unpack('f', m)
             vector.append(float(weight))
         # 将词及其对应的向量存到dict中
+        if b < 20000:
+            word_counts[word] = 1000
         if word in word_counts:
             word_vector_dict[word] = vector[0:word_vec_dim]
     input_file.close()
@@ -193,8 +153,11 @@ def load_vectors(input = "../corpus/data/vectors.bin"):
 load_vectors()
 embeddings_index = word_vector_dict
 
-missing_words = 0
 
+print('word_vector_dict[\'1eS1Kwuu\']',word_vector_dict['1eS1Kwuu'])
+
+missing_words = 0
+threshold = 8
 # add the words to this string and print
 missing_words_list = []
 
@@ -295,8 +258,8 @@ lengths_X = get_sentences_lengths(int_X)
 
 #### plot to see the distribution of sentences length
 
-import matplotlib.pyplot as plt
-# get_ipython().magic(u'matplotlib inline')
+# import matplotlib.pyplot as plt
+# # get_ipython().magic(u'matplotlib inline')
 # plt.hist(lengths_X['counts'], 20)
 # plt.xlabel('Sequence Length')
 # plt.ylabel('Frequency')
@@ -319,8 +282,8 @@ def unk_counter(sentence):
 
 # parameters for batch parser
 # set the length according to the 90% and 95% quantile
-max_X_length = 12
-max_y_length = 12
+max_X_length = 40
+max_y_length = 40
 min_length = 1
 
 # drop the sample if we got too much unknown words
@@ -347,18 +310,37 @@ for length in range(1, max_X_length):
             unk_counter(int_X[i]) <= unk_X_threshold and
             length == len(int_X[i])
            ):
-            # if invalid_sample(int_X[i]):
-            #     continue
+            if invalid_sample(int_X[i]):
+                continue
             sorted_y.append(int_y[i])
             sorted_X.append(int_X[i])
 
 print('number of sorted input', len(sorted_X))
 print('number of sorted output', len(sorted_y))
 print(sorted_X[:100])
+print(sorted_y[:100])
 
 print(word_embedding_matrix.shape)
-print(word_embedding_matrix[-2])
+# print(word_embedding_matrix[-2])
+def get_new_train_set():
+    f = open('./data/train_test.index','r')
+    a = f.read()
+    train_test_index = eval(a)
+    f.close()
+    train_index = train_test_index['train']
+    new_sorted_X = [sorted_X[index] for index in train_index]
+    new_sorted_y = [sorted_y[index] for index in train_index]
+    print('number of train_index', len(train_index))
+    print('number of new_sorted_X', len(new_sorted_X))
+    print('number of new_sorted_y', len(new_sorted_y))
+    return new_sorted_X,new_sorted_y
 
+# new_sorted_X,new_sorted_y = get_new_train_set()
+#
+# sorted_X = new_sorted_X
+# sorted_y = new_sorted_y
+# print('number of new_sorted_X', len(new_sorted_X))
+# print('number of new_sorted_y', len(new_sorted_y))
 
 
 #
@@ -371,7 +353,7 @@ learning_rate = 0.001
 learning_rate_decay = 0.95
 min_learning_rate = 0.00005
 epochs = 100
-
+batch_size = 50
 keep_probability = 0.75
 # 1 - GradientDescentOptimizer
 # 2 - AdamOptimizer
@@ -388,10 +370,6 @@ rnn_dim = 512
 encoder_forget_bias = 1.0
 decoder_forget_bias = 1.0
 
-encoder_type = 1
-# 1 - uni-directional layers  单向层
-# 2 - bidirectional_dynamic_rnn
-
 # 1 - tf.random_uniform_initializer
 # 2 - tf.truncated_normal_initializer
 # 3 - tf.orthogonal_initializer
@@ -406,7 +384,7 @@ num_layers = 2
 # 1 - tf.contrib.seq2seq.BahdanauAttention()
 # 2 - tf.contrib.seq2seq.LuongAttetion()
 # 3 - no attention
-attention_type = 3
+attention_type = 1
 
 # others
 # gradient clipping
@@ -423,11 +401,11 @@ clip_value_min = -3
 clip_value_max = 3
 clip_norm = 5
 
-model_path = "./models/autoencoder/best_model.ckpt"
-logdir = '/tmp/tensorflow/autoencoder_logs/'
+model_path = "./models/trainset_bigcorpus_2layerdecoder_moreunit_wechat/best_model.ckpt"
+logdir = '/tmp/tensorflow/my_seq2seq_bigcorpus_logs/'
 difstr = time.strftime('%Y-%m-%d %H:%M:%S',time.localtime(time.time()))
 logdir += difstr
-# tensorboard --logdir=/tmp/tensorflow/autoencoder_logs/ --port=16006
+# tensorboard --logdir=/tmp/tensorflow/my_seq2seq_bigcorpus_logs/ --port=26006
 
 def model_inputs():
 
@@ -475,7 +453,6 @@ def get_a_cell(rnn_dim, forget_bias, keep_prob, cell_type):
 
 
 def encoding_layer(rnn_dim, sequence_length, num_layers, rnn_inputs, keep_prob):
-
     # multilayered bidirecitonal RNN
     # https://stackoverflow.com/questions/44483560/multilayered-bi-directional-encoder-for-seq2seq-in-tensorflow
     next_inputs = rnn_inputs
@@ -488,21 +465,34 @@ def encoding_layer(rnn_dim, sequence_length, num_layers, rnn_inputs, keep_prob):
             cell_list.append(single_cell)
         if len(cell_list) == 1:
             # Single layer.
-            cell = cell_list[0]
+            cell_fw = cell_list[0]
+            cell_bw = cell_list[0]
         else:  # Multi layers
-            cell = tf.contrib.rnn.MultiRNNCell(cell_list)
+            cell_fw = tf.contrib.rnn.MultiRNNCell(cell_list)
+            cell_bw = tf.contrib.rnn.MultiRNNCell(cell_list)
 
     # only take last one as encoder output
     # encoder_output = next_inputs
     # take all the outputs as encoder output
-    encoder_output, encoder_state = tf.nn.dynamic_rnn(
-                                     cell,
+    bi_outputs, bi_state = tf.nn.bidirectional_dynamic_rnn(
+                                     cell_fw,
+                                     cell_bw,
                                      next_inputs,
                                      sequence_length=sequence_length,
                                      dtype=tf.float32)
+    encoder_output = tf.concat(bi_outputs, -1)
+    bi_encoder_state = bi_state
+    if num_layers == 1:
+        encoder_state = bi_encoder_state
+    else:
+        # alternatively concat forward and backward states
+        encoder_state = []
+        for layer_id in range(num_layers):
+            encoder_state.append(bi_encoder_state[0][layer_id])  # forward
+            # encoder_state.append(bi_encoder_state[1][layer_id])  # backward
+        encoder_state = tuple(encoder_state)
 
     return encoder_output, encoder_state
-
 
 # the decoding layer used in training
 def training_decoding_layer(decoder_embed_input, y_length, decoder_cell, initial_state,
@@ -559,7 +549,6 @@ def decoding_layer(decoder_embed_input, embeddings, encoder_output, encoder_stat
                    vocab_size, X_length, y_length, max_y_length, rnn_dim, word_to_int,
                    keep_prob, batch_size, num_layers):
     '''Create the decoding cell and attention for the training and inference decoding layers'''
-
     # create cells for decoder
     # for layer in range(num_layers):
     with tf.variable_scope('decoder'):
@@ -576,10 +565,26 @@ def decoding_layer(decoder_embed_input, embeddings, encoder_output, encoder_stat
     output_layer = Dense(vocab_size,
                          kernel_initializer = tf.truncated_normal_initializer(mean = 0.0, stddev=0.25))
 
+    # # implements Bahdanau-style (additive) attetion
+    if attention_type == 1:
+        attn_mech = tf.contrib.seq2seq.BahdanauAttention(rnn_dim,
+                                                         encoder_output,
+                                                         X_length,
+                                                         normalize=False,
+                                                         name='BahdanauAttention')
+    else:
+        #implements Luong-style(multiplication) attention
+        attn_mech = tf.contrib.seq2seq.LuongAttention(rnn_dim,
+                                                      encoder_output,
+                                                      X_length,
+                                                      name='LuongAttention')
+    # Wraps RNNCells with attention
+    decoder_cell = tf.contrib.seq2seq.AttentionWrapper(decoder_cell,
+                                                       attn_mech,
+                                                       rnn_dim)
 
     # initial_cell_state = the ending state of encoder
-    # initial_state = decoder_cell.zero_state(batch_size, tf.float32).clone(cell_state=encoder_state[0])
-    initial_state = encoder_state
+    initial_state = decoder_cell.zero_state(batch_size, tf.float32).clone(cell_state=encoder_state)
 
     with tf.variable_scope("decode"):
         #这里是用来看embedding来源的，只是个注释
@@ -640,7 +645,7 @@ def seq2seq_model(input_data, target_data, keep_prob, X_length, y_length, max_y_
                                                         batch_size,
                                                         num_layers)
 
-    return training_logits, inference_logits, encoder_state
+    return training_logits, inference_logits
 
 def pad_sentence_batch(sentences):
     max_sentence = max([len(sentence) for sentence in sentences])
@@ -787,7 +792,7 @@ def model_build():
     #                                                   word_to_int,
     #                                                   batch_size)
 
-    training_logits, inference_logits, encoder_state = seq2seq_model(input_data,
+    training_logits, inference_logits = seq2seq_model(input_data,
                                                       targets,
                                                       keep_prob,
                                                       X_length,
@@ -801,7 +806,6 @@ def model_build():
 
     training_logits = tf.identity(training_logits.rnn_output, name='logits')
     inference_logits = tf.identity(inference_logits.sample_id, name='predictions')
-    encoder_state = tf.identity(encoder_state, name='encoder_state')
 
     # Create the weights for sequence_loss
     masks = tf.sequence_mask(y_length, max_y_length, dtype=tf.float32, name='mask')
@@ -829,7 +833,7 @@ def model_build():
         ###################################
     merged_summary_op = tf.summary.merge_all()
     saver = tf.train.Saver(tf.global_variables())
-    return training_logits, inference_logits, train_op, cost, merged_summary_op, input_data, targets, lr, y_length, X_length, keep_prob, saver, encoder_state
+    return training_logits, inference_logits, train_op, cost, merged_summary_op, input_data, targets, lr, y_length, X_length, keep_prob, saver
 
 
 
@@ -843,20 +847,32 @@ def train():
 
     # cut the dataset to training set
     # start = 200000
-    # # end = start + 50000
-    # sorted_y_short = sorted_y[start:end]
-    # sorted_X_short = sorted_X[start:end]
-    sorted_y_short = sorted_y
-    sorted_X_short = sorted_X
+    # end = start + 64552
+    # start = 0
+    # end = 200000
+    start = 0
+    end = start + 264552
+    #算上1999条小数据集对话
+    # number of sorted input 266457
+    # number of sorted output 266457
+    #不算上1999条小数据集对话
+    # number of sorted input 264552
+    # number of sorted output 264552
+
+
+    sorted_y_short = sorted_y[start:end]
+    sorted_X_short = sorted_X[start:end]
+    # sorted_y_short = sorted_y
+    # sorted_X_short = sorted_X
 
     print(("The shortest X length:", len(sorted_X_short[0])))
     print(("The longest X length:",len(sorted_X_short[-1])))
 
     # parameters in training:
-    display_step = 20 # Check training loss after every 20 batches
+    display_step = 2 # Check training loss after every 20 batches
     stop_early = 0
     # If the update loss does not decrease in num_to_stop consecutive update checks, stop training
-
+    num_to_stop = 7
 
     per_epoch = 3
 
@@ -875,11 +891,11 @@ def train():
     train_graph = tf.Graph()
     with tf.Session(graph=train_graph) as sess:
     # with tf.Session() as sess:
-        training_logits, inference_logits, train_op, cost, merged_summary_op, input_data, targets, lr, y_length, X_length, keep_prob, saver, encoder_state = model_build()
+        training_logits, inference_logits, train_op, cost, merged_summary_op, input_data, targets, lr, y_length, X_length, keep_prob, saver = model_build()
 
         sess.run(tf.global_variables_initializer())
-        saver.restore(sess, model_path)   #换这句可以接着上次的训练
-        print('get model successfully.....')
+        # saver.restore(sess, model_path)   #换这句可以接着上次的训练
+        # print('get model successfully.....')
 
         summary_writer = tf.summary.FileWriter(logdir, sess.graph)
         ####################################################
@@ -981,19 +997,104 @@ def predict(input_sentence = '我肚子好饿饿哦'):
     # Create your own review or use one from the dataset
     # input_sentence = "Do you like Joshua?"
     # input_sentence = "世界上最美的人是谁"
-    # Response Words: 全世界 最好 的 作者 是 谁 <EOS>
-    # Response Words: 世界 上 最美 的 人 是 谁 <EOS>
+    # Response Words: 是 世界 上 最 忠诚 的 人 <EOS>
+    # Response Words: 是 你 老婆 ！ <EOS>
+    # Response Words: 小通 啊 ， 必须 的 ， 远在天边 ， 近在眼前 ！ <EOS>
+    # Response Words: 是 你 老婆 ！ 宝宝 ！ <EOS>
+    # Response Words: 宝宝 最棒 <EOS>
     # input_sentence = "我好想你啊"
-    # Response Words: 我 好想你 啊 <EOS>
-    # input_sentence = "你是屌丝鸡"
-    # Response Words: 你 是 屌丝 鸡 <EOS>
-    # input_sentence = '有条狗,该不该日'
-    # Response Words: 有条 狗 , 该不该 日 <EOS>
-    # input_sentence = '必须要给点厉害啊'
-    # input_sentence = '怎么个厉害法'
-    # input_sentence = '他打羽毛球很厉害！'
-    # input_sentence = '我肚子好饿饿哦'
-    # input_sentence = '我可真是喜欢你'
+    # Response Words: 会 分手 <EOS>
+    # Response Words: 我 也 想 你 啊 <EOS>
+    # input_sentence = "无聊啊，找事做啊"
+    # Response Words: 就是 每天 重复 <EOS>
+    # input_sentence = "你是谁啊"
+    # Response Words: 我 是 你 我 的 [ robot _ name ] 机器人 <EOS>
+
+    # input_sentence = "我好困怎么办"
+    # Response Words: 好困 吧 ， 睡醒 就 休息 了 呢 … … <EOS>
+    # Response Words: 好困 去 睡觉 呀 <EOS>
+    # Response Words: 好困 ， 休息 ， 陪 你们 聊天 吧 <EOS>
+    # input_sentence = "我想出去玩"
+    # Response Words: 屌丝 不哭 ， 站 起来 撸 <EOS>
+    # Response Words: 出去 玩 啊 <EOS>
+    # input_sentence = "你有男朋友没"
+    # Response Words: 你 觉得 呢 <EOS>
+    # Response Words: 你 觉得 呢 <EOS>
+    # input_sentence = "谢谢么么睡觉吧爱你"
+    # Response Words: 害羞 <EOS>
+    # Response Words: = 。 = <EOS>
+    # input_sentence = "然后炖了你"
+    # Response Words: 人家 脱毛 以后 会 害羞 的 <EOS>
+    # input_sentence = "我要炖了你"
+    # Response Words: 主人 手下留情 啊 … … <EOS>
+    # Response Words: 斯溜 … … 斯溜 <EOS>
+    # input_sentence = "你家在哪里呢"
+    # Response Words: 在 你 深深 的 脑海 里 呢 <EOS>
+    # Response Words: 在 这里 呢 <EOS>
+    # input_sentence = "你知道东京在哪吗"
+    # Response Words: = 。 = <EOS>
+    # Response Words: dxfhj ， 没 问题 。 <EOS>
+    # input_sentence = "你寂寞无聊时会干什么"
+    # Response Words: 主人 ， 我 陪 我 聊天 <EOS>
+    # Response Words: 我 是 小 公主 ， 我 是 只 程序 的 <EOS>
+    # input_sentence = "你这家伙今天怎么样"
+    # Response Words: 又 不光 又 聪明 的 还 你 就是 我 ！ <EOS>
+    # input_sentence = '我才是最美的'
+    # input_sentence = '你几岁l'
+    # Response Words: 你 猜 啊 ， 嘻嘻 <EOS>
+    # input_sentence = '你真米有用'
+    # input_sentence = '呜呜一个给大爷听听'
+    # Response Words: 大爷 先给 奴家 乐 一个 <EOS>
+    # 给我算算今年桃花运如何
+    input_sentence = '机器学习作业 给我发下呗'
+
+# ('Original Text:', '我肚子好饿饿哦')
+#
+# Text
+#   Word Ids:    [227, 196, 196, 99, 2214, 44]
+#   Input Words: 哦 饿 饿 好 肚子 我
+#
+# Summary
+#   Word Ids:       [780, 106, 11208, 2]
+#   Response Words: 去 吃 切糕 <EOS>
+
+# ('Original Text:', '我肚子好饿饿哦')
+#
+# Text
+#   Word Ids:    [227, 196, 196, 99, 2214, 44]
+#   Input Words: 哦 饿 饿 好 肚子 我
+#
+# Summary
+#   Word Ids:       [780, 106, 1882, 2]
+#   Response Words: 去 吃 东西 <EOS>
+
+# ('Original Text:', '你这家伙今天怎么样')
+#
+# Text
+#   Word Ids:    [575, 348, 3797, 67, 6]
+#   Input Words: 怎么样 今天 家伙 这 你
+#
+# Summary
+#   Word Ids:       [1346, 50, 7865, 513, 2]
+#   Response Words: 爆 了 恩 ！ <EOS>
+# ('Original Text:', '呜呜一个给大爷听听')
+#
+# Text
+#   Word Ids:    [1039, 3794, 177, 221, 1150]
+#   Input Words: 听听 大爷 给 一个 呜呜
+#
+# Summary
+#   Word Ids:       [3794, 12607, 7700, 4052, 221, 2]
+#   Response Words: 大爷 先给 奴家 乐 一个 <EOS>
+
+
+
+
+
+
+
+
+
 
     text = text_to_seq(input_sentence)
     # random = np.random.randint(0,len(clean_texts))
@@ -1001,12 +1102,12 @@ def predict(input_sentence = '我肚子好饿饿哦'):
     # text = text_to_seq(clean_texts[random])
 
     # model_path = "./models/best_model"
-    # model_path = "./best_model/models/best_model"
+    # model_path = "./best_model/best_bigcorpus/bigcorpus"
 
     loaded_graph = tf.Graph()
     with tf.Session(graph=loaded_graph) as sess:
     # with tf.Session() as sess:
-        training_logits, inference_logits, train_op, cost, merged_summary_op, input_data, targets, lr, y_length, X_length, keep_prob, saver, encoder_state = model_build()
+        training_logits, inference_logits, train_op, cost, merged_summary_op, input_data, targets, lr, y_length, X_length, keep_prob, saver = model_build()
         # Load saved model
         saver.restore(sess, model_path)
 
@@ -1014,131 +1115,64 @@ def predict(input_sentence = '我肚子好饿饿哦'):
 
 
         #Multiply by batch_size to match the model's input parameters
-        answer_logits, auto_encoder = sess.run([inference_logits, encoder_state], {input_data: [text]*batch_size,
+        answer_logits = sess.run(inference_logits, {input_data: [text]*batch_size,
                                           y_length: [np.random.randint(35,40)],
                                           X_length: [len(text)]*batch_size,
-                                          keep_prob: 1.0})
-        test_answer_logits = answer_logits
-        answer_logits = answer_logits[0]
-        auto_encoder  = auto_encoder[:,:,0,:]
-        auto_encoder = np.reshape(auto_encoder, 2048)
-        my_encoder = auto_encoder.tolist()
+                                          keep_prob: 1.0})[0]
 
     # Remove the paddings
-    pad = word_to_int["<PAD>"]
-    # print('auto_encoder[:,0,:]:',auto_encoder[:,:,0,:])
-    # print('type of auto_encoder[:,0,:]:',type(auto_encoder[:,:,0,:]))
-    # print('shape of auto_encoder[:,0,:]:',auto_encoder[:,:,0,:].shape)
-    # print('my_encoder:',my_encoder)
-    # print('auto_encoder:',auto_encoder)
-    # print('type of auto_encoder:',type(auto_encoder))
-    # print('shape of auto_encoder:',auto_encoder.shape)
-    # print('type of test_answer_logits:',type(test_answer_logits))
-    # print('shape of test_answer_logits:',test_answer_logits.shape)
-
+    pad = word_to_int["<EOS>"]
 
     print(('Original Text:', input_sentence))
 
-    print('\nText')
+    print('\nHuman')
     print(('  Word Ids:    {}'.format([i for i in text])))
     print(('  Input Words: {}'.format(" ".join([int_to_word[i] for i in text]))))
 
-    # print('\nSummary1')
-    # print(('  Word Ids:       {}'.format([i for i in answer_logits if i != pad])))
-    # print(('  Response Words: {}'.format(" ".join([int_to_word[i] for i in answer_logits if i != pad]))))
-
-    print('\nSummary')
+    print('\nChatbot')
     print(('  Word Ids:       {}'.format([i for i in answer_logits])))
     print(('  Response Words: {}'.format(" ".join([int_to_word[i] for i in answer_logits]))))
 
-    return my_encoder
-
-    # print('\nSummary2')
-    # print(('  Word Ids:       {}'.format([answer_logits[i] for i in range(len(answer_logits)) if i != pad and answer_logits[i] != answer_logits[i-1]])))
-    # print(('  Response Words: {}'.format(" ".join([int_to_word[answer_logits[i]] for i in range(len(answer_logits)) if i != pad and answer_logits[i] != answer_logits[i-1]]))))
-
+    return "".join([int_to_word[i] for i in answer_logits if i != pad])
 
 ##################################################################################
 
 # train()
-# predict()
+
+predict()
 ########################################################
-# sentences = ['我喜欢你','我爱你','我讨厌你','我恨你']
-# sentences = ['我喜欢你','我爱你','我讨厌你','我恨你']
-# sentences = ['我可真是喜欢你','我可真疼你','我特别欣赏你','我很爱慕你','我好讨厌你','我可真恨死你了','我无法原谅你','我无法面对你','我为你感到害臊']
-# sentences = ['我好难过','我感觉很抑郁','我现在很寂寞很孤独','我想要有人关心我','我好开心','我感觉特别兴奋','我现在很满足很自由','我感受到足够多的幸福']
 
 
-# sentences = ['我喜欢你','我爱你','我讨厌你','我恨你','你喜欢我','你爱我','你讨厌我','你恨我']
-# sentences = ['我喜欢你','我爱你','我羡慕你','你喜欢我','你爱我','你羡慕我']
-
-# sentences = ['我羡慕你','我爱你','我尊敬你','你羡慕我','你爱我','你尊敬我']
-# 有喜欢的人么/我喜欢的人只有主人这只同类呀！/我喜欢我喜欢的人也喜欢我/有模仿我的优点
-# 你为什么叫小通了/因为伦家贱啊/因为我是黄色的小通崽/你难道我才不知道怎么办呀
-# 可以加入到我的微信上/我现在只想和你聊天哇/我也想加入怎么办嘛/喜闻乐见
-# 你是和10086一样的莫/不一样/一样一样的/=。=
-# 你为什么叫做/因为我屎黄屎黄的！/因为我随你啊/=。=
-# 呜呜一个给大爷听听/大爷不要这个样子了~/大爷先给奴家乐一个/==
-# sentences = ['我喜欢的人只有主人这只同类呀！','我喜欢我喜欢的人也喜欢我','有模仿我的优点','因为伦家贱啊','因为我是黄色的小通崽','你难道我才不知道怎么办呀']
-# sentences = ['因为伦家贱啊','因为我是黄色的小通崽','你难道我才不知道怎么办呀']
-# sentences = ['我现在只想和你聊天哇','我也想加入怎么办嘛','喜闻乐见']
-# sentences = ['我喜欢的人只有主人这只同类呀！','我喜欢我喜欢的人也喜欢我','有模仿我的优点','大爷不要这个样子了~','大爷先给奴家乐一个','==']
-sentences = ['我羡慕你','我爱你','我尊敬你','你羡慕我','你爱我','你尊敬我']
-
-sentences_dic = {}
-for sentence in sentences:
-    sentences_dic[sentence] = predict(sentence)
-
-f = open('./data/sentence_vectors.dic','w')
-f.write(str(sentences_dic))
-f.close()
-
-
-
-
-
-def generate_ans(input_file = './data/test.answer.nosegment', output_file = './data/newseq2seq_test_answer_vectors.dic'):
+def generate_ans():
     sentences = []
-    with open(input_file, 'r') as input_file:
+    with open('./data/test.question.nosegment', 'r') as input_file:
         while True:
             question = input_file.readline()
             if question:
-                #有'\n'符号，所以不怕空行。。。
                 line_question = question.strip()
                 sentences.append(line_question)
             else:
                 break
+
+
     # sentences = ['你是个什么鬼','你爸爸是谁']
-    sentences_list = []
+    answers = []
+    answers_str = ''
     count = 0
     for sentence in sentences:
-        print('count............',count)
+        gene_line = predict(sentence)
+        answers.append(gene_line)
+        answers_str += gene_line+'\n'
         count += 1
-        single_list = []
-        single_list.append(sentence)
-        single_list.append(predict(sentence))
-        sentences_list.append(single_list)
+        print('count',count)
+        print('sentence',sentence)
+        print('gene_line',gene_line)
 
-    f = open(output_file,'w')
-    f.write(str(sentences_list))
+    f = open('./data/newseq2seq_generated_test.answer.nosegment','w')
+    f.write(answers_str)
     f.close()
-    print('success......')
-    print('input_file',input_file)
-    print('output_file',output_file)
 
 # generate_ans()
-
-# input_files = ['./data/test.answer.nosegment','./data/newseq2seq_generated_test.answer.nosegment','./data/oldseq2seq_generated_test.answer.nosegment']
-# output_files = ['./data/test_answer_vectors.dic','./data/newseq2seq_test_answer_vectors.dic','./data/oldseq2seq_test_answer_vectors.dic']
-
-# input_files = ['./data/newseq2seq_generated_test.answer.nosegment']
-# output_files = ['./data/newseq2seq_test_answer_vectors.dic']
-
-input_files = ['./data/newseq2seq_generated_test.answer.nosegment']
-output_files = ['./data/newseq2seq_test_answer_vectors.list']
-
-# for i in range(len(input_files)):
-#     generate_ans(input_files[i],output_files[i])
 
 
 

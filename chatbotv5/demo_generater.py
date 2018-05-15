@@ -392,10 +392,10 @@ def predict():
             print('input_seq',input_seq)
             print('gene_line',gene_line)
 
-        f = open('../chatbotv2/data/oldseq2seq_generated_test.answer.nosegment','w')
+        f = open('../chatbotv2/data/oldseq2seq_generated_test.answer.nosegment.again','w')
         f.write(answers_str)
         f.close()
-
+#第828行是空字符串。。。。。。。！!！!！!！!
 
 # > 你是个什么鬼
 # Building prefix dict from the default dictionary ...

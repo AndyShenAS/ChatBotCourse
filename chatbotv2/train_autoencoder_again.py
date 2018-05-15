@@ -423,7 +423,7 @@ clip_value_min = -3
 clip_value_max = 3
 clip_norm = 5
 
-model_path = "./models/autoencoder/best_model.ckpt"
+model_path = "./models/autoencoder_again/best_model.ckpt"
 logdir = '/tmp/tensorflow/autoencoder_logs/'
 difstr = time.strftime('%Y-%m-%d %H:%M:%S',time.localtime(time.time()))
 logdir += difstr
@@ -878,8 +878,8 @@ def train():
         training_logits, inference_logits, train_op, cost, merged_summary_op, input_data, targets, lr, y_length, X_length, keep_prob, saver, encoder_state = model_build()
 
         sess.run(tf.global_variables_initializer())
-        saver.restore(sess, model_path)   #换这句可以接着上次的训练
-        print('get model successfully.....')
+        # saver.restore(sess, model_path)   #换这句可以接着上次的训练
+        # print('get model successfully.....')
 
         summary_writer = tf.summary.FileWriter(logdir, sess.graph)
         ####################################################
@@ -1060,8 +1060,8 @@ def predict(input_sentence = '我肚子好饿饿哦'):
 
 ##################################################################################
 
-# train()
-# predict()
+train()
+predict()
 ########################################################
 # sentences = ['我喜欢你','我爱你','我讨厌你','我恨你']
 # sentences = ['我喜欢你','我爱你','我讨厌你','我恨你']
@@ -1079,19 +1079,18 @@ def predict(input_sentence = '我肚子好饿饿哦'):
 # 你是和10086一样的莫/不一样/一样一样的/=。=
 # 你为什么叫做/因为我屎黄屎黄的！/因为我随你啊/=。=
 # 呜呜一个给大爷听听/大爷不要这个样子了~/大爷先给奴家乐一个/==
-# sentences = ['我喜欢的人只有主人这只同类呀！','我喜欢我喜欢的人也喜欢我','有模仿我的优点','因为伦家贱啊','因为我是黄色的小通崽','你难道我才不知道怎么办呀']
+sentences = ['我喜欢的人只有主人这只同类呀！','我喜欢我喜欢的人也喜欢我','有模仿我的优点','因为伦家贱啊','因为我是黄色的小通崽','你难道我才不知道怎么办呀']
 # sentences = ['因为伦家贱啊','因为我是黄色的小通崽','你难道我才不知道怎么办呀']
 # sentences = ['我现在只想和你聊天哇','我也想加入怎么办嘛','喜闻乐见']
 # sentences = ['我喜欢的人只有主人这只同类呀！','我喜欢我喜欢的人也喜欢我','有模仿我的优点','大爷不要这个样子了~','大爷先给奴家乐一个','==']
-sentences = ['我羡慕你','我爱你','我尊敬你','你羡慕我','你爱我','你尊敬我']
 
-sentences_dic = {}
-for sentence in sentences:
-    sentences_dic[sentence] = predict(sentence)
-
-f = open('./data/sentence_vectors.dic','w')
-f.write(str(sentences_dic))
-f.close()
+# sentences_dic = {}
+# for sentence in sentences:
+#     sentences_dic[sentence] = predict(sentence)
+#
+# f = open('./data/sentence_vectors.dic','w')
+# f.write(str(sentences_dic))
+# f.close()
 
 
 
