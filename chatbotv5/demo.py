@@ -378,6 +378,19 @@ def predict():
             input_seq = sys.stdin.readline()
 
 
+# > 什么时候炖好
+# Building prefix dict from the default dictionary ...
+# Loading model from cache /tmp/jieba.cache
+# Loading model cost 0.523 seconds.
+# Prefix dict has been built succesfully.
+# 马上
+# > 我要吃油炸鸡翅
+# 我 这 就 剁 了 给 你 炖 去 … …
+# > 哼哼你这么博爱
+# 不要 啊 ， 饶 了 我 吧 ， 娘娘
+# >
+#跟训练及回复一抹一样，说明训练的很好了！！！
+
 # > 你是个什么鬼
 # Building prefix dict from the default dictionary ...
 # Loading model from cache /tmp/jieba.cache
@@ -391,7 +404,7 @@ def predict():
 #
 # Text
 #   Word Ids:    [111, 94, 36, 21, 6]
-#   Input Words: 鬼 什么 个 是 你    
+#   Input Words: 鬼 什么 个 是 你
 #
 # Summary
 #   Word Ids:       [44, 21, 36, 113, 126, 2]

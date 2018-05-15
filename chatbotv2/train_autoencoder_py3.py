@@ -1089,6 +1089,7 @@ def generate_ans(input_file = './data/test.answer.nosegment', output_file = './d
         while True:
             question = input_file.readline()
             if question:
+                #有'\n'符号，所以不怕空行。。。
                 line_question = question.strip()
                 sentences.append(line_question)
             else:
@@ -1122,8 +1123,8 @@ def generate_ans(input_file = './data/test.answer.nosegment', output_file = './d
 input_files = ['./data/newseq2seq_generated_test.answer.nosegment']
 output_files = ['./data/newseq2seq_test_answer_vectors.list']
 
-for i in range(len(input_files)):
-    generate_ans(input_files[i],output_files[i])
+# for i in range(len(input_files)):
+#     generate_ans(input_files[i],output_files[i])
 
 
 

@@ -59,9 +59,9 @@ def vector_cosine(v1, v2):
     sqrtlen1 = vector_sqrtlen(v1)
     sqrtlen2 = vector_sqrtlen(v2)
     if sqrtlen1*sqrtlen2 == 0:
-        print('float division by zero .....')
-        print('v1......',v1)
-        print('v2......',v2)
+        # print('float division by zero .....')
+        # print('v1......',v1)
+        # print('v2......',v2)
         return 0
     value = 0
     for item1, item2 in zip(v1, v2):
@@ -83,6 +83,31 @@ def average_cosine_similarity():
         oldseq2seq_cos_sim.append(vector_cosine(pure_vec[0][j], pure_vec[2][j]))
     print('sum(newseq2seq_cos_sim).....',sum(newseq2seq_cos_sim))
     print('sum(oldseq2seq_cos_sim).....',sum(oldseq2seq_cos_sim))
+# sum(newseq2seq_cos_sim)..... 762.3020645570724
+# sum(oldseq2seq_cos_sim)..... 719.0811440522036
+    y1 = []
+    y2 = []
+    for i in range(len(newseq2seq_cos_sim)):
+        y1.append(sum(newseq2seq_cos_sim[:i])/(i+1))
+        y2.append(sum(oldseq2seq_cos_sim[:i])/(i+1))
+    x = range(len(newseq2seq_cos_sim))
+    plt.plot(x,y1,label='word2vec embedded seq2seq answer',linewidth=1,color='r',marker='o',markerfacecolor='k',markersize=1)
+    plt.plot(x,y2,label='one-hot embedded seq2seq answer',linewidth=1,color='b',marker='>',markerfacecolor='k',markersize=1)
+    plt.xlabel('Sample number',fontsize=12, family='serif', style='italic')
+    plt.ylabel('Average cosine similarity',fontsize=12, family='serif', style='italic')
+    plt.title('Answers\' average similarity comparison',fontsize=14, family='serif', style='italic')
+    plt.grid(True)
+    plt.legend(shadow=True, fontsize='x-large')
+    # legend.get_title().set_fontsize(fontsize = 20)
+    fig = plt.gcf()
+    # fig.set_size_inches(18.5, 10.5)
+    #Figure_22.png
+    fig.set_size_inches(12, 6.75)
+    fig.savefig('test2png.png', dpi=500)
+    plt.legend()
+    plt.show()
+
+
 
 def eval_distance(dic):
     for sentence in dic:
@@ -130,19 +155,35 @@ def pca_show():
     #setting plt
     # plt.xlim(xmax=6,xmin=-6)
     # plt.ylim(ymax=6,ymin=-6)
-    plt.title('中文句子向量',fontsize=18)
-    plt.xlabel("width",fontsize=18, family='serif', style='italic')
-    plt.ylabel("height",fontsize=18, family='serif', style='italic')
+    plt.title('The deviation vector with the original answer',fontsize=14, family='serif', style='italic')
+    plt.xlabel("width",fontsize=12, family='serif', style='italic')
+    plt.ylabel("height",fontsize=12, family='serif', style='italic')
     for i in range(len(newData_PCA)):
         # plt.text(newData_PCA[i][0],newData_PCA[i][1]+0.5,test_sentences[i], ha='right', wrap=True, fontsize=15)
         if i%2 == 0:
             edgecolors = 'r'
+            label='deviation vector from word2vec model'
         else:
             edgecolors = 'b'
-        plt.scatter(newData_PCA[i][0],newData_PCA[i][1], color='', marker='o', edgecolors=edgecolors, s=20)
+            label='deviation vector from one-hot model'
+        if i > 1:
+            label = None
+        # plt.scatter(newData_PCA[i][0],newData_PCA[i][1],label=label, color='', marker='*', edgecolors=edgecolors, s=20)
+        plt.scatter(newData_PCA[i][0],newData_PCA[i][1],label=label, color=edgecolors, marker='*', s=20)
     # plt.legend(loc='upper center', shadow=True, fontsize='x-large')
     plt.grid(True)
+    plt.legend(shadow=True, fontsize='x-large')
+    # legend.get_title().set_fontsize(fontsize = 20)
+    fig = plt.gcf()
+    # fig.set_size_inches(18.5, 10.5)
+    #Figure_22.png
+    fig.set_size_inches(12, 6.75)
+    fig.savefig('test2png.png', dpi=500)
     plt.show()
+
+
+
+
 
 def pca_transfer(dic):
     sentences = []

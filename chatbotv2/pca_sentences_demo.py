@@ -56,8 +56,7 @@ def eval_distance(dic):
         for each in xx:
             print(each[0],each[1])
 
-
-def pca_transfer(dic):
+def pca_regular_transfer(dic):
     sentences = []
     weights = []
     for k,v in dic.items():
@@ -93,6 +92,69 @@ def pca_transfer(dic):
         plt.scatter(newData_PCA[i][0],newData_PCA[i][1], color='', marker='o', edgecolors='r', s=60)
     # plt.legend(loc='upper center', shadow=True, fontsize='x-large')
     plt.grid(True)
+    plt.show()
+
+
+
+def pca_transfer(dic):
+    sentences = []
+    weights = []
+    for k,v in dic.items():
+        sentences.append(k)
+        weights.append(v)
+    test_weights = []
+    test_sentences =[]
+
+    test_weights = weights
+    test_sentences =sentences
+
+    # test_words.extend(["man","woman","king","queen","princess","prince","male","female"])
+    min_max_scaler = preprocessing.MinMaxScaler()
+    globalMean_minmax = min_max_scaler.fit_transform(test_weights)
+    #PCA 降维
+    pca = PCA(n_components=0.95)
+    pca.fit(globalMean_minmax)
+    newData_PCA = pca.transform(globalMean_minmax)
+    print(newData_PCA)
+    # print(words)
+    print('PCA result......')
+    print(pca.explained_variance_ratio_)
+    print(pca.explained_variance_)
+    print(pca.n_components_)
+    #setting plt
+    # plt.xlim(xmax=6,xmin=-6)
+    # plt.ylim(ymax=6,ymin=-6)
+    # plt.title('中文句子向量',fontsize=18)
+    plt.title('Chinese sentence vector PCA display',fontsize=14, family='serif', style='italic')
+    plt.xlabel("width",fontsize=12, family='serif', style='italic')
+    plt.ylabel("height",fontsize=12, family='serif', style='italic')
+    for i in range(len(test_sentences)):
+        plt.text(newData_PCA[i][0],newData_PCA[i][1]+0.2,test_sentences[i], ha='right', wrap=True, fontsize=12)
+        if i%3 == 0:
+            marker = 'o'
+            edgecolors='k'
+            label = 'test set original answer'
+        elif i%3 == 1:
+            marker = '>'
+            edgecolors='r'
+            label = 'word2vec embedded seq2seq answer'
+        else:
+            marker = 's'
+            edgecolors='b'
+            label = 'one-hot embedded seq2seq answer'
+        if i > 2:
+            label = None
+        plt.scatter(newData_PCA[i][0], newData_PCA[i][1],label=label, color='', marker=marker, edgecolors=edgecolors, s=40)
+    # plt.legend(loc='upper center', shadow=True, fontsize='x-large')
+    # ax=plt.gca()
+    plt.grid(True)
+    plt.legend(shadow=True, fontsize='x-large')
+    # legend.get_title().set_fontsize(fontsize = 20)
+    fig = plt.gcf()
+    # fig.set_size_inches(18.5, 10.5)
+    #Figure_22.png
+    fig.set_size_inches(12, 6.75)
+    fig.savefig('test2png.png', dpi=500)
     plt.show()
 
 
